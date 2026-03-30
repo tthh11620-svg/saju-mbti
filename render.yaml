@@ -6,6 +6,6 @@ services:
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
-        sync: false   # Render 대시보드에서 직접 입력
+        sync: false
       - key: PYTHON_VERSION
         value: "3.11"
