@@ -10,9 +10,8 @@ const db = getFirestore(app);
 // 상수
 // ──────────────────────────────────────────────────────────
 // 로컬 개발 → localhost, 배포 환경 → Render 서버 URL 자동 전환
-const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:8000"
-  : "https://saju-mbti-sota.onrender.com";
+// Cloudflare Pages Functions는 상대경로로 자동 연결됨
+const API_BASE = "";
 
 // ──────────────────────────────────────────────────────────
 // DOM 요소
@@ -64,7 +63,7 @@ form.addEventListener("submit", async (e) => {
     }
 
     const data = await res.json();
-    renderResult(data, payload);
+    renderResult(data);
     await saveToFirestore(data, payload);
   } catch (err) {
     showError(err.message);
@@ -76,7 +75,7 @@ form.addEventListener("submit", async (e) => {
 // ──────────────────────────────────────────────────────────
 // 결과 렌더링
 // ──────────────────────────────────────────────────────────
-function renderResult(data, payload) {
+function renderResult(data) {
   resultSection.style.display = "block";
   resultSection.scrollIntoView({ behavior: "smooth" });
 
