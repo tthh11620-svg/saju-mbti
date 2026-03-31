@@ -12,7 +12,7 @@ const db = getFirestore(app);
 // 로컬 개발 → localhost, 배포 환경 → Render 서버 URL 자동 전환
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:8000"
-  : "https://YOUR_RENDER_APP_NAME.onrender.com";  // Render 배포 후 이 URL로 교체
+  : "https://saju-mbti-sota.onrender.com";
 
 // ──────────────────────────────────────────────────────────
 // DOM 요소
