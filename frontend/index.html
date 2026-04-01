@@ -3,12 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>사주 MBTI 분석</title>
+  <title>사주 MBTI 분석 — 태어난 순간으로 알아보는 나의 유형</title>
+  <meta name="description" content="생년월일시를 입력하면 사주명리학 기반으로 나의 MBTI 유형을 AI가 분석해 드립니다. 오행, 십성, 형충회합 구조를 종합한 정밀 분석." />
+  <meta name="keywords" content="사주 MBTI, 사주 분석, MBTI 테스트, 오행 분석, 사주명리학, 사주풀이, MBTI 유형" />
+  <meta name="author" content="사주MBTI" />
+  <meta property="og:title" content="사주 MBTI 분석 — 태어난 순간으로 알아보는 나의 유형" />
+  <meta property="og:description" content="생년월일시로 사주를 계산하고 AI가 MBTI 유형을 분석해 드립니다." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://saju-mbti.pages.dev" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="사주 MBTI 분석" />
+  <meta name="twitter:description" content="생년월일시로 나의 MBTI를 사주로 분석해보세요." />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#6c63ff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="사주MBTI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "사주MBTI",
+    "url": "https://saju-mbti.pages.dev",
+    "description": "사주명리학 기반 MBTI 분석 서비스. 생년월일시를 입력하면 오행·십성 구조를 AI가 분석하여 MBTI 유형을 도출합니다.",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web",
+    "inLanguage": "ko",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "KRW"
+    }
+  }
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -402,6 +429,76 @@
       </div>
 
     </div>
+
+    <!-- ── 서비스 소개 섹션 ── -->
+    <div class="card" style="margin-top:8px;">
+      <div class="section-label">✨ 이런 분석을 해드립니다</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:var(--bg);border-radius:12px;padding:16px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🧮</div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;">정밀 사주 계산</div>
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.5;">절기 기준으로 년·월·일·시주 4기둥을 정확하게 산출합니다.</div>
+        </div>
+        <div style="background:var(--bg);border-radius:12px;padding:16px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🌊</div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;">오행 분포 분석</div>
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.5;">목·화·토·금·수의 과부족을 시각적으로 파악합니다.</div>
+        </div>
+        <div style="background:var(--bg);border-radius:12px;padding:16px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">⭐</div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;">십성 구조 파악</div>
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.5;">비견·식신·편관 등 10가지 심리 에너지를 분석합니다.</div>
+        </div>
+        <div style="background:var(--bg);border-radius:12px;padding:16px;">
+          <div style="font-size:1.5rem;margin-bottom:6px;">🧠</div>
+          <div style="font-weight:700;font-size:.95rem;margin-bottom:4px;">AI MBTI 추정</div>
+          <div style="font-size:.82rem;color:var(--muted);line-height:1.5;">GPT-4o가 사주 구조를 E/I·N/S·T/F·J/P로 번역합니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FAQ ── -->
+    <div class="card">
+      <div class="section-label">❓ 자주 묻는 질문</div>
+      <details style="margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+        <summary style="cursor:pointer;font-weight:700;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+          사주로 MBTI를 분석하는 원리가 뭔가요? <span>＋</span>
+        </summary>
+        <p style="margin-top:12px;font-size:.88rem;color:var(--muted);line-height:1.7;">사주명리학에서 오행(木火土金水)의 분포와 십성(비견·식신·편관 등)의 구조는 개인의 기질적 성향을 나타냅니다. 예를 들어 수(水) 기운이 강하고 식상(식신·상관)이 발달하면 감성적이고 표현력이 풍부한 F형 성향이 나타나고, 금(金)과 관성(편관·정관)이 강하면 원칙과 기준을 중시하는 T형 성향이 나타납니다. 형·충·파·해 등 지지의 상호작용도 행동의 즉흥성(P)과 계획성(J)에 영향을 미칩니다.</p>
+      </details>
+      <details style="margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+        <summary style="cursor:pointer;font-weight:700;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+          분석 결과가 기존 MBTI 검사와 다를 수 있나요? <span>＋</span>
+        </summary>
+        <p style="margin-top:12px;font-size:.88rem;color:var(--muted);line-height:1.7;">네, 다를 수 있습니다. 일반 MBTI 검사는 현재의 심리 상태와 환경의 영향을 받지만, 사주 기반 분석은 태어난 시간의 구조적 기질을 분석합니다. 둘 다 참고 자료로 활용하시고, 어느 쪽이 더 나에게 공감되는지 비교해보는 것도 좋은 자기 이해의 방법입니다.</p>
+      </details>
+      <details style="margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+        <summary style="cursor:pointer;font-weight:700;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+          출생 시간을 정확히 모르면 어떻게 하나요? <span>＋</span>
+        </summary>
+        <p style="margin-top:12px;font-size:.88rem;color:var(--muted);line-height:1.7;">출생 시간은 시주(時柱)를 결정하는 데 사용됩니다. 정확한 시간을 모르신다면 출생 시간을 12시(정오)로 입력하시면 나머지 년·월·일주 3기둥을 기반으로 분석을 진행합니다. 단, 결과의 완전한 정확성을 위해서는 출생 시간 확인을 권장합니다.</p>
+      </details>
+      <details>
+        <summary style="cursor:pointer;font-weight:700;font-size:.95rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+          무료로 이용할 수 있나요? <span>＋</span>
+        </summary>
+        <p style="margin-top:12px;font-size:.88rem;color:var(--muted);line-height:1.7;">네, 현재 모든 분석 기능을 무료로 제공하고 있습니다.</p>
+      </details>
+    </div>
+
+    <!-- ── 푸터 ── -->
+    <footer style="text-align:center;padding:24px 0 0;border-top:1.5px solid var(--border);">
+      <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">
+        🔮 사주MBTI — 태어난 순간으로 알아보는 나의 유형
+      </div>
+      <div style="display:flex;justify-content:center;gap:20px;font-size:.82rem;">
+        <a href="/about.html" style="color:var(--muted);text-decoration:none;">서비스 소개</a>
+        <a href="/privacy.html" style="color:var(--muted);text-decoration:none;">개인정보처리방침</a>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted);margin-top:12px;opacity:.6;">
+        © 2025 사주MBTI. 본 서비스는 엔터테인먼트 목적으로 제공되며, 전문적인 심리 상담을 대체하지 않습니다.
+      </div>
+    </footer>
 
   </div>
 

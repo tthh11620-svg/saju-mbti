@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>서비스 소개 — 사주MBTI</title>
+  <meta name="description" content="사주MBTI는 수천 년의 동양 철학인 사주명리학을 현대 심리유형론 MBTI와 결합한 분석 서비스입니다." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #6c63ff; --primary-dark: #4b44cc;
+      --bg: #f5f4ff; --card: #fff; --text: #2d2b55;
+      --muted: #888; --border: #e0deff;
+    }
+    [data-theme="dark"] {
+      --bg: #0f0e1a; --card: #1a1828; --text: #e8e6ff;
+      --muted: #8884aa; --border: #2e2a4a;
+    }
+    body { font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif; background:var(--bg); color:var(--text); padding:40px 16px 80px; line-height:1.8; transition:background .3s,color .3s; }
+    .container { max-width:720px; margin:0 auto; }
+    .card { background:var(--card); border-radius:16px; padding:40px; box-shadow:0 4px 24px rgba(108,99,255,.1); margin-bottom:24px; }
+    h1 { font-size:1.8rem; color:var(--primary); margin-bottom:8px; }
+    h2 { font-size:1.15rem; font-weight:800; color:var(--text); margin:28px 0 10px; }
+    p { margin-bottom:14px; font-size:.95rem; }
+    .back { display:inline-block; margin-bottom:24px; color:var(--primary); text-decoration:none; font-weight:600; font-size:.9rem; }
+    .back:hover { text-decoration:underline; }
+    .hero { text-align:center; padding:48px 24px; }
+    .hero h1 { font-size:2rem; }
+    .hero p { font-size:1rem; color:var(--muted); max-width:480px; margin:12px auto 0; }
+    .feature-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px; }
+    @media(max-width:500px){ .feature-grid { grid-template-columns:1fr; } }
+    .feature-item { background:var(--bg); border-radius:12px; padding:20px; }
+    .feature-item .icon { font-size:1.8rem; margin-bottom:8px; }
+    .feature-item h3 { font-size:1rem; font-weight:700; margin-bottom:6px; }
+    .feature-item p { font-size:.85rem; color:var(--muted); margin:0; }
+    .cta { text-align:center; margin-top:8px; }
+    .cta a {
+      display:inline-block; padding:14px 36px;
+      background:var(--primary); color:#fff;
+      border-radius:12px; text-decoration:none;
+      font-weight:700; font-size:1rem;
+      transition:background .2s;
+    }
+    .cta a:hover { background:var(--primary-dark); }
+    .theme-toggle {
+      position:fixed; top:16px; right:16px;
+      width:44px; height:44px; background:var(--card); border:1.5px solid var(--border);
+      border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;
+      font-size:1.2rem; box-shadow:0 4px 12px rgba(0,0,0,.1);
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle">🌙</button>
+  <div class="container">
+    <a href="/" class="back">← 사주MBTI 홈으로</a>
+
+    <div class="card hero">
+      <h1>🔮 사주MBTI란?</h1>
+      <p>수천 년의 동양 철학, 사주명리학과<br>현대 심리유형론 MBTI의 만남</p>
+    </div>
+
+    <div class="card">
+      <h2>어떤 서비스인가요?</h2>
+      <p>사주MBTI는 태어난 연·월·일·시를 기반으로 사주 원국을 계산하고, 오행(五行)의 분포와 십성(十星)의 구조를 분석하여 현대인이 쉽게 이해할 수 있는 MBTI 유형으로 변환해 드리는 서비스입니다.</p>
+      <p>단순히 "토가 많으면 S형"과 같은 단편적인 매핑이 아니라, 천간·지지의 합(合)과 충(沖), 오행 간의 생극제화(生剋制化) 구조를 종합적으로 분석하여 행동 패턴과 심리적 성향을 도출합니다.</p>
+
+      <h2>왜 사주와 MBTI를 결합했나요?</h2>
+      <p>MBTI는 현재 심리 상태나 환경의 영향을 많이 받아 결과가 바뀌는 경우가 많습니다. 반면 사주명리학은 태어난 시간의 천문학적 구조를 기반으로 하기 때문에 변하지 않는 기질적 성향을 분석하는 데 강점이 있습니다.</p>
+      <p>두 체계를 결합함으로써, 타고난 성향과 현재 심리 유형을 함께 이해하는 더 풍부한 자기 이해의 도구를 제공합니다.</p>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="icon">🧮</div>
+          <h3>정밀한 사주 계산</h3>
+          <p>절기 기준으로 정확한 사주 8자를 산출합니다.</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">🧠</div>
+          <h3>AI 심층 분석</h3>
+          <p>GPT-4o 기반으로 개인화된 해석을 제공합니다.</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">📊</div>
+          <h3>시각적 결과</h3>
+          <p>오행 분포와 MBTI 확신도를 그래프로 표시합니다.</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">🔒</div>
+          <h3>개인정보 보호</h3>
+          <p>식별 불가능한 정보만 분석에 활용합니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>분석 방법론</h2>
+      <p><strong>1단계 — 사주 원국 산출:</strong> 입력된 생년월일시를 절기(節氣) 기준으로 변환하여 년주·월주·일주·시주의 4기둥, 8자를 산출합니다.</p>
+      <p><strong>2단계 — 오행 분석:</strong> 목(木)·화(火)·토(土)·금(金)·수(水) 다섯 기운의 분포와 과부족을 파악합니다.</p>
+      <p><strong>3단계 — 십성 구조 파악:</strong> 일간을 기준으로 비견·겁재·식신·상관·편재·정재·편관·정관·편인·정인의 분포를 계산합니다.</p>
+      <p><strong>4단계 — 관계 구조 분석:</strong> 천간합·충, 지지 삼합·육합·충·형·파·해 등 글자 간의 상호작용을 파악하여 행동 패턴의 역동성을 분석합니다.</p>
+      <p><strong>5단계 — MBTI 변환:</strong> 위 구조를 E/I·N/S·T/F·J/P 4개 축으로 번역하고, AI가 스토리텔링 방식의 해석 리포트를 작성합니다.</p>
+
+      <div class="cta">
+        <a href="/">지금 바로 분석하기 ✨</a>
+      </div>
+    </div>
+
+  </div>
+  <script>
+    const toggle = document.getElementById("theme-toggle");
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme","dark");
+      toggle.textContent = "☀️";
+    }
+    toggle.addEventListener("click", () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement[isDark ? "removeAttribute" : "setAttribute"]("data-theme","dark");
+      toggle.textContent = isDark ? "🌙" : "☀️";
+      localStorage.setItem("theme", isDark ? "light" : "dark");
+    });
+  </script>
+</body>
+</html>
