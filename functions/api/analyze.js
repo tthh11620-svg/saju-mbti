@@ -197,8 +197,8 @@ function getDayPillar(year, month, day) {
 function getHourPillar(dayCycleIdx, hour) {
   const branchIdx = hour === 23 ? 0 : Math.floor((hour + 1) / 2);
   const dayStemIdx = dayCycleIdx % 10;
-  const startStemIdx = ((dayStemIdx % 5) * 2) % 10;
-  const hourStemIdx  = (startStemIdx + branchIdx) % 10;
+  const startStemIdx  = ((dayStemIdx % 5) * 2) % 10;
+  const hourStemIdx   = (startStemIdx + branchIdx) % 10;
   const cycleIdx = findCyclePos(hourStemIdx, branchIdx);
   return { cycleIdx, chars: cycleToChars(cycleIdx) };
 }
@@ -421,12 +421,12 @@ function computeSaju(eightChars) {
 
   const ganTengods = GAN_POSITIONS.filter(p=>p!=='일간').map(p=>cheonganSipseong[p]);
   const total = [...ganTengods, ...hiddenTengods];
-  const sipseongCounts = counter(total);
-  const coreSipseong   = mostCommon(sipseongCounts, 3);
-  const twelveStages   = Object.fromEntries(JI_POSITIONS.map((p,i)=>[p, getTwelveStage(dayGan,jis[i])]));
-  const cheonganRels   = computeCheonganRelations(gans);
-  const jijiRels       = computeJijiRelations(jis);
-  const {sinsal, gwiin}= computeSinsal(dayGan, yearJi, dayJi, jis);
+  const sipseongCounts   = counter(total);
+  const coreSipseong     = mostCommon(sipseongCounts, 3);
+  const twelveStages     = Object.fromEntries(JI_POSITIONS.map((p,i)=>[p, getTwelveStage(dayGan,jis[i])]));
+  const cheonganRels     = computeCheonganRelations(gans);
+  const jijiRels         = computeJijiRelations(jis);
+  const {sinsal, gwiin}  = computeSinsal(dayGan, yearJi, dayJi, jis);
 
   return {
     '사주_원국': {'년주':`${yearGan}${yearJi}`,'월주':`${monthGan}${monthJi}`,'일주':`${dayGan}${dayJi}`,'시주':`${hourGan}${hourJi}`},
@@ -464,17 +464,14 @@ function dayMasterStrength(computed) {
 
   let score = 0;
 
-  // 득령
   if (monthBoost === dayElem) score += 2.4;
   if ((ELEM_IDX[monthBoost] + 1) % 5 === ELEM_IDX[dayElem]) score += 1.0;
 
-  // 비겁/인성
   score += tg('비견') * 1.2;
   score += tg('겁재') * 0.9;
   score += tg('정인') * 1.0;
   score += tg('편인') * 0.8;
 
-  // 식상/재성/관성
   score -= tg('식신') * 0.45;
   score -= tg('상관') * 0.55;
   score -= tg('정재') * 0.45;
@@ -482,10 +479,8 @@ function dayMasterStrength(computed) {
   score -= tg('정관') * 0.55;
   score -= tg('편관') * 0.65;
 
-  // 같은 오행, 생조 오행
   score += elem(dayElem) * 0.35;
 
-  // 통근
   for (const pos of Object.keys(hidden)) {
     const stems = hidden[pos].장간.map(([gan]) => gan);
     if (stems.includes(dayGan)) score += 0.8;
@@ -583,6 +578,26 @@ function calculateStructuralFeatures(computed) {
   };
 }
 
+function buildStructureLabels(computed, features) {
+  const ten = computed['십성_요약'];
+  const tg = n => ten[n] || 0;
+  const labels = [];
+
+  if ((tg('정관') + tg('편관')) >= 3) labels.push('관성 강세형');
+  if ((tg('정인') + tg('편인')) >= 3) labels.push('인성 강세형');
+  if ((tg('비견') + tg('겁재')) >= 3) labels.push('비견 강세형');
+  if ((tg('식신') + tg('상관')) <= 1) labels.push('식상 약세형');
+  if ((tg('식신') + tg('상관')) >= 3) labels.push('식상 발산형');
+  if (features.conflictLevel >= 2.0) labels.push('충돌 내면형');
+  if (features.structureNeed >= 2.6) labels.push('책임 구조형');
+  if (features.relationalSensitivity >= 2.5) labels.push('관계 민감형');
+  if (features.abstractionFocus >= 2.3) labels.push('해석 중심형');
+  if (features.dayMasterStrengthLabel === '신약') labels.push('환경 민감형');
+  if (features.supportDrive >= 2.5 && features.expressionDrive <= 1.3) labels.push('내면 축적형');
+
+  return labels.slice(0, 5);
+}
+
 // =====================================================================
 // 6. MBTI 축 계산
 // =====================================================================
@@ -602,8 +617,8 @@ function axisReasonPack(axisKey, winner, features, computed) {
         '혼자만 축적하기보다 상호작용 속에서 에너지가 움직일 가능성이 큽니다.',
       ],
       I: [
-        '반응보다 관찰과 내부 정리를 먼저 거치는 경향이 더 강하게 보입니다.',
-        '말이나 행동보다 생각과 축적이 먼저 작동하는 구조에 가깝습니다.',
+        '겉으로 바로 움직이기보다 관찰과 내부 정리를 먼저 거치는 쪽에 가깝습니다.',
+        '표현이 적어서가 아니라, 생각과 감정이 안에서 오래 가공된 뒤 밖으로 나오는 구조입니다.',
       ]
     },
     'N/S': {
@@ -619,11 +634,11 @@ function axisReasonPack(axisKey, winner, features, computed) {
     'T/F': {
       T: [
         '판단할 때 감정보다 기준과 정리, 맞고 틀림을 먼저 보려는 경향이 있습니다.',
-        '다만 완전히 차갑다기보다 관계를 고려하면서도 결론은 정리 쪽으로 가는 편입니다.',
+        '관계를 무시한다기보다 최종 결론은 정리와 기준 쪽으로 가는 편입니다.',
       ],
       F: [
-        '사람의 반응과 감정선이 판단에 꽤 영향을 미치는 구조입니다.',
-        '겉으로는 정리해 보여도 실제론 관계의 온도를 많이 읽는 편일 수 있습니다.',
+        '판단에서 감정에 휘둘린다기보다, 사람 사이의 온도와 맥락을 실제로 중요하게 반영하는 구조입니다.',
+        '겉으로는 이성적으로 보여도 속에서는 관계 반응과 감정선이 꽤 크게 작동할 수 있습니다.',
       ]
     },
     'J/P': {
@@ -659,72 +674,83 @@ function buildAxisResult(axisKey, a, b, aScore, bScore, features, computed) {
 function calculateMbti(features, computed) {
   const ten = computed['십성_요약'];
   const tg = n => ten[n] || 0;
-  const isWaterDayMaster = ['壬','癸'].includes(computed['일간']);
 
-  // E/I
+  const isWaterDayMaster = ['壬', '癸'].includes(computed['일간']);
+  const lowExpression = (tg('식신') + tg('상관')) <= 1;
+  const strongControl = (tg('정관') + tg('편관')) >= 3;
+  const strongSupport = (tg('정인') + tg('편인')) >= 2;
+  const highInnerConflict = features.internalConflict >= 2.2;
+
+  // E / I
   let eScore =
-    features.selfDrive * 0.45 +
-    features.expressionDrive * 0.35 +
-    features.flexibility * 0.15;
+    features.selfDrive * 0.34 +
+    features.expressionDrive * 0.24 +
+    features.flexibility * 0.12;
 
-   let iScore =
+  let iScore =
     features.supportDrive * 0.55 +
-    features.emotionalContainment * 0.45 +
-    features.internalConflict * 0.35;
+    features.emotionalContainment * 0.48 +
+    features.internalConflict * 0.38 +
+    features.structureNeed * 0.12;
 
-  if ((tg('식신') + tg('상관')) <= 1) iScore += 0.9;
-  if ((tg('정관') + tg('편관')) >= 3) iScore += 0.35; // 관성이 강하다고 무조건 외부형은 아님
+  if (lowExpression) iScore += 0.95;
+  if (strongControl) iScore += 0.35;
+  if (strongSupport) iScore += 0.35;
   if (isWaterDayMaster) iScore += 0.45;
-  if (features.dayMasterStrengthLabel === '신약') iScore += 0.35;
-  if (features.relationalSensitivity >= 2.6) iScore += 0.25;
+  if (features.dayMasterStrengthLabel === '신약') iScore += 0.25;
+  if (features.relationalSensitivity >= 2.5) iScore += 0.2;
 
-  // N/S
-   let nScore =
-    features.abstractionFocus * 0.58 +
-    features.internalConflict * 0.24 +
-    features.relationalSensitivity * 0.22;
+  // N / S
+  let nScore =
+    features.abstractionFocus * 0.60 +
+    features.relationalSensitivity * 0.18 +
+    features.internalConflict * 0.22 +
+    features.supportDrive * 0.08;
 
   let sScore =
     features.realityFocus * 0.46 +
     features.structureNeed * 0.22 +
-    features.controlDrive * 0.16;
+    features.controlDrive * 0.18;
 
-  if (isWaterDayMaster) nScore += 0.35;
-  if ((tg('정관') + tg('편관')) >= 3 && (tg('식신') + tg('상관')) <= 1) sScore += 0.45;
+  if (isWaterDayMaster) nScore += 0.25;
+  if (strongSupport) nScore += 0.15;
+  if (strongControl && lowExpression) sScore += 0.15;
 
-  // T/F
-    let tScore =
-    features.controlDrive * 0.40 +
-    features.realityFocus * 0.22 +
-    features.structureNeed * 0.18;
+  // T / F
+  let tScore =
+    features.controlDrive * 0.34 +
+    features.realityFocus * 0.20 +
+    features.structureNeed * 0.16 +
+    features.selfDrive * 0.08;
 
   let fScore =
     features.relationalSensitivity * 0.52 +
-    features.supportDrive * 0.32 +
-    features.internalConflict * 0.22;
+    features.supportDrive * 0.34 +
+    features.internalConflict * 0.24 +
+    features.emotionalContainment * 0.14;
 
   if (isWaterDayMaster) fScore += 0.35;
-  if ((tg('정관') + tg('편관')) >= 3) tScore += 0.15;
-  if ((tg('식신') + tg('상관')) <= 1 && features.internalConflict >= 2.0) fScore += 0.35;
-  if (features.emotionalContainment >= 2.0) fScore += 0.15; // 감정 억제가 곧 감정 없음은 아님
+  if (strongSupport) fScore += 0.20;
+  if (lowExpression && highInnerConflict) fScore += 0.35;
+  if (strongControl) tScore += 0.12;
 
-  // J/P
+  // J / P
   let jScore =
-    features.structureNeed * 0.45 +
-    features.controlDrive * 0.25 +
-    features.emotionalContainment * 0.2;
+    features.structureNeed * 0.46 +
+    features.controlDrive * 0.26 +
+    features.emotionalContainment * 0.24 +
+    features.stabilityLevel * 0.10;
 
   let pScore =
-    features.flexibility * 0.4 +
-    features.expressionDrive * 0.2 +
-    features.conflictLevel * 0.15;
+    features.flexibility * 0.28 +
+    features.expressionDrive * 0.14 +
+    features.conflictLevel * 0.10;
 
-  if ((tg('정관') + tg('편관')) >= 3) jScore += 0.55;
-  if ((tg('식신') + tg('상관')) <= 1) jScore += 0.3;
-  if (features.conflictLevel >= 2 && (tg('정관') + tg('편관')) >= 3) {
-    // 충이 있어도 관성이 강하면 "불안정한 J" 쪽으로 본다
-    jScore += 0.45;
-    pScore -= 0.15;
+  if (strongControl) jScore += 0.35;
+  if (lowExpression) jScore += 0.18;
+  if (features.conflictLevel >= 2.0 && strongControl) {
+    jScore += 0.30;
+    pScore -= 0.08;
   }
 
   const axes = {
@@ -736,13 +762,12 @@ function calculateMbti(features, computed) {
 
   const type = `${axes['E/I'].result}${axes['N/S'].result}${axes['T/F'].result}${axes['J/P'].result}`;
 
-  // 2순위 후보: 가장 박빙인 축 뒤집기
   const closeness = Object.entries(axes)
     .map(([axis, info]) => ({
       axis,
       gap: Math.abs(Object.values(info.scores)[0] - Object.values(info.scores)[1])
     }))
-    .sort((a,b) => a.gap - b.gap);
+    .sort((a, b) => a.gap - b.gap);
 
   const chars = type.split('');
   const idxMap = { 'E/I':0, 'N/S':1, 'T/F':2, 'J/P':3 };
@@ -787,91 +812,60 @@ function axisDisplayText(axisInfo, axisKey) {
   return `${winner} ${names[winner]} (${labelText[axisInfo.label]})${axisInfo.label === 'balanced' ? ` / ${loser}와 차이가 크지 않음` : ''}`;
 }
 
-function buildSummary(computed, features, mbti) {
-  const dm = DAY_MASTER_LABEL[computed['일간']];
-  const core = features.dominantPatterns.slice(0, 3).join(', ');
-  const conflictComment = features.conflictDescriptions[0]
-    ? ` 또한 ${features.conflictDescriptions[0]}`
-    : '';
+function buildStructureDrivenNarrative(computed, features, mbti) {
+  const dayMaster = computed['일간'];
+  const dayMasterLabel = DAY_MASTER_LABEL[dayMaster] || dayMaster;
+  const labels = buildStructureLabels(computed, features);
+  const has = label => labels.includes(label);
 
-  return `${dm} 구조를 기준으로 보면 ${mbti.type} 쪽이 가장 유력합니다. 이 결과는 ${core || '복합적인 구조'}를 바탕으로 나온 것으로, 겉으로 드러나는 태도와 내부 정서가 완전히 같지 않을 수 있습니다.${conflictComment}`;
+  let summary = `${dayMasterLabel} 기반 구조에서는 ${mbti.type} 쪽이 가장 유력합니다. 다만 이 결과의 핵심은 MBTI 글자 자체보다 ${labels.slice(0, 3).join(', ')} 구조에 있습니다.`;
+  let personality = '';
+  let relationship = '';
+  let caution = '';
+
+  if (has('관성 강세형') && has('식상 약세형') && has('내면 축적형')) {
+    personality = '책임감과 기준 의식이 강한데 표현은 빠르기보다 내부 정리를 거쳐 나오는 편입니다. 그래서 겉으로는 차분하고 통제된 사람처럼 보이지만, 속에서는 생각과 감정이 오래 머무를 가능성이 큽니다.';
+  } else if (has('인성 강세형') && has('해석 중심형')) {
+    personality = '정보를 바로 쓰기보다 안에서 해석하고 오래 정리하는 경향이 강합니다. 단순히 조용한 게 아니라, 의미와 심리 흐름을 붙잡고 생각하는 타입에 가깝습니다.';
+  } else if (has('비견 강세형') && has('식상 발산형')) {
+    personality = '자기주도성과 반응 속도가 빠른 편이며, 생각을 바깥으로 밀어내는 힘도 있는 구조입니다. 다만 기준이 강할수록 말이 단단하거나 직선적으로 들릴 수 있습니다.';
+  } else if (has('충돌 내면형') && has('관계 민감형')) {
+    personality = '겉에서 보이는 태도보다 안쪽 긴장과 반응이 더 복잡할 수 있습니다. 사람과 상황을 잘 읽지만, 그만큼 감정과 생각이 내부에 오래 남는 편입니다.';
+  } else {
+    personality = '한쪽으로 단순하게 치우친 성격이라기보다, 기준·감정·관계 반응이 함께 작동하는 복합형 구조에 가깝습니다. 그래서 상황에 따라 보이는 결이 조금씩 달라질 수 있습니다.';
+  }
+
+  if (has('관계 민감형') && has('식상 약세형')) {
+    relationship = '관계에서 감정이 없어서 표현이 적은 게 아니라, 표현보다 내부 처리와 거리 조절이 먼저 일어나는 편입니다. 가까워질수록 깊어질 수 있지만, 상처도 오래 남길 가능성이 있습니다.';
+  } else if (has('비견 강세형') && has('충돌 내면형')) {
+    relationship = '사람과의 관계에서 자기 기준이 분명한 편이라 맞을 때는 빠르게 가까워지지만, 틀어질 때는 단호하게 거리를 둘 수 있습니다. 갈등이 생기면 내부 긴장이 말투나 태도로 튀어나올 수도 있습니다.';
+  } else if (has('책임 구조형')) {
+    relationship = '관계에서도 가볍게 흘려보내기보다 책임감과 신뢰를 중요하게 보는 편입니다. 대신 기대치가 무너질 때 실망이나 거리 두기가 빨라질 수 있습니다.';
+  } else {
+    relationship = '관계에서는 감정선과 현실 판단이 동시에 작동하는 편입니다. 가까운 사람에게만 드러나는 내면 패턴이 따로 있을 가능성이 큽니다.';
+  }
+
+  if (has('식상 약세형') && has('충돌 내면형')) {
+    caution = '생각과 감정이 안에 오래 쌓이는데 표현은 늦어 스트레스가 누적될 수 있습니다. 중요한 감정이나 불편함은 너무 늦기 전에 언어화하는 연습이 필요합니다.';
+  } else if (has('관성 강세형') && has('책임 구조형')) {
+    caution = '책임감이 강한 건 장점이지만, 그 힘이 과해지면 스스로를 압박하는 방식으로 흘러갈 수 있습니다. 모든 상황을 통제하려 하기보다 조절 가능한 부분만 쥐는 편이 낫습니다.';
+  } else if (has('비견 강세형') && has('식상 발산형')) {
+    caution = '자기 생각을 밀고 나가는 힘이 강한 편이라, 상대가 느끼는 압박이나 말의 온도를 놓칠 수 있습니다. 속도보다 조율을 의식하면 강점이 더 잘 살아납니다.';
+  } else {
+    caution = '강점이 분명한 구조지만, 그 강점이 과해질 때 약점처럼 보일 수 있습니다. 특히 감정·기준·관계 중 어디에서 과열되는지 스스로 체크하는 게 중요합니다.';
+  }
+
+  return {
+    summary,
+    personality,
+    relationship,
+    caution,
+    reason_summary: `${labels.join(', ')} / 1순위 ${mbti.type}${mbti.secondary ? ` / 2순위 ${mbti.secondary}` : ''}`,
+    structure_labels: labels,
+  };
 }
 
-function buildPersonality(computed, features, mbti) {
-  const dm = DAY_MASTER_LABEL[computed['일간']];
-  const dmTone = DAY_MASTER_TONE[computed['일간']];
-  const strength = features.dayMasterStrengthLabel;
-
-  let sentence = `${dm} 특유의 결은 ${dmTone}에 가깝습니다. `;
-  if (strength === '신강') {
-    sentence += '기본적으로 자기 방식과 기준을 지키려는 힘이 비교적 강합니다. ';
-  } else if (strength === '신약') {
-    sentence += '기본적으로 환경과 사람의 흐름에 민감하게 반응하는 편입니다. ';
-  } else {
-    sentence += '한쪽으로 과하게 치우치기보다 상황에 따라 결이 달라질 여지가 있습니다. ';
-  }
-
-  if (features.controlDrive >= 3.5) {
-    sentence += '관성 쪽 힘이 있어 책임감, 규칙 의식, 현실 감각이 함께 작동합니다. ';
-  }
-  if (features.expressionDrive <= 1.2) {
-    sentence += '식상 쪽 발산력이 약한 편이라 하고 싶은 말을 바로 꺼내기보다 내부에서 먼저 정리하는 쪽에 가깝습니다. ';
-  }
-  if (features.internalConflict >= 2.2) {
-    sentence += '내부 갈등이 존재해 겉으로는 차분해 보여도 속으로 생각이 많을 수 있습니다. ';
-  }
-
-  return sentence.trim();
-}
-
-function buildRelationship(features, mbti) {
-  const type = mbti.type;
-
-  let base = '';
-  if (type[0] === 'I') {
-    base += '관계에서 먼저 크게 드러나기보다, 관찰과 거리 조절을 거친 뒤 깊어지는 편입니다. ';
-  } else {
-    base += '관계에서 반응 속도는 빠를 수 있지만, 누구에게나 같은 온도로 열리는 타입은 아닐 수 있습니다. ';
-  }
-
-  if (type[2] === 'T') {
-    base += '상대를 생각하지 않는다는 뜻이 아니라, 최종 판단에서는 정리와 기준을 더 우선하는 경향이 있습니다. ';
-  } else {
-    base += '상대 감정과 관계 분위기가 판단에 실제로 영향을 줄 가능성이 큽니다. ';
-  }
-
-  if (features.internalConflict >= 2.2) {
-    base += '상처나 스트레스를 겉보다 안쪽에 오래 두는 구조라, 표현보다 축적이 먼저 일어날 수 있습니다.';
-  } else if (features.expressionDrive <= 1.2) {
-    base += '감정이 없어서가 아니라 표현이 늦을 수 있어, 가까운 사람은 답답함을 느낄 수도 있습니다.';
-  } else {
-    base += '가까워질수록 표현이 자연스러워지지만, 기본적인 기준은 쉽게 바뀌지 않는 편입니다.';
-  }
-
-  return base.trim();
-}
-
-function buildCaution(features, mbti) {
-  let text = '';
-
-  if (features.controlDrive >= 3.5 && features.internalConflict >= 2.2) {
-    text += '책임감과 내부 압박이 같이 강하면 겉으로는 버티는데 속으로 피로가 쌓일 수 있습니다. ';
-  }
-  if (mbti.axes['J/P'].label === 'balanced' || mbti.axes['J/P'].label === 'close') {
-    text += '정리를 원하면서도 유연 대응도 필요해, 계획이 깨질 때 스트레스를 크게 받을 가능성이 있습니다. ';
-  }
-  if (features.expressionDrive <= 1.2) {
-    text += '표현이 늦으면 오해가 쌓일 수 있으니, 중요한 감정이나 불편함은 조금 더 빨리 언어화하는 연습이 필요합니다.';
-  }
-
-  if (!text) {
-    text = '강점이 분명한 구조지만, 기준과 감정 사이의 균형이 무너질 때 피로가 커질 수 있습니다.';
-  }
-
-  return text.trim();
-}
-
-function buildRelationshipCards(mbti, features) {
+function buildRelationshipCards(mbti, features, structureLabels = []) {
   const compatMap = {
     'INTJ':'ENFP','INTP':'ENTJ','INFJ':'ENTP','INFP':'ENFJ',
     'ISTJ':'ESFP','ISTP':'ESFJ','ISFJ':'ESTP','ISFP':'ESTJ',
@@ -879,29 +873,35 @@ function buildRelationshipCards(mbti, features) {
     'ESTJ':'ISFP','ESTP':'ISFJ','ESFJ':'ISTP','ESFP':'ISTJ'
   };
 
+  const has = label => structureLabels.includes(label);
+
   let love = '';
-  if (mbti.type.startsWith('I')) {
-    love = '연애에서는 속도가 빠르기보다 신뢰가 쌓여야 깊게 들어가는 편일 가능성이 큽니다. 감정을 쉽게 드러내지 않아도 애정이 없는 타입은 아닙니다.';
-  } else {
-    love = '연애에서 반응은 비교적 빠를 수 있지만, 실제 속내를 다 보여주기까지는 별도 시간이 필요할 수 있습니다.';
-  }
-
   let relationship = '';
-  if (features.controlDrive >= 3.5) {
-    relationship = '사람 관계에서도 기준과 책임감이 함께 작동합니다. 편한 사람과 아닌 사람의 경계가 분명할 수 있습니다.';
-  } else if (features.relationalSensitivity >= 2.8) {
-    relationship = '사람의 반응과 관계 흐름을 예민하게 읽는 편이라 분위기 변화에 민감할 수 있습니다.';
-  } else {
-    relationship = '관계에서 감정과 현실 판단이 동시에 작동하는 편이라, 상황마다 보이는 결이 달라질 수 있습니다.';
-  }
+  let compatDesc = '';
 
-  const compat = compatMap[mbti.type] || mbti.secondary;
+  if (has('관성 강세형') && has('식상 약세형')) {
+    love = '연애에서는 감정이 없는 타입이 아니라, 표현보다 책임감과 안정감을 먼저 보여주는 편에 가깝습니다. 가까워질수록 진심은 깊어지지만, 초반엔 다소 닫혀 보일 수 있습니다.';
+    relationship = '관계에서 쉽게 흐트러지기보다 선을 지키려는 편입니다. 대신 기대가 무너질 때 실망이 오래 남을 수 있습니다.';
+    compatDesc = '너무 즉흥적인 사람보다 감정 표현이 자연스럽고, 동시에 신뢰를 지킬 수 있는 타입이 더 잘 맞을 수 있습니다.';
+  } else if (has('충돌 내면형') && has('관계 민감형')) {
+    love = '가까워지면 깊게 들어가지만, 상처나 서운함도 오래 가져갈 가능성이 큽니다. 애정은 크더라도 표현 타이밍이 어긋날 수 있습니다.';
+    relationship = '사람을 잘 읽는 편이지만, 그만큼 관계 피로도도 크게 느낄 수 있습니다. 깊은 관계와 단절 사이의 온도차가 클 수 있습니다.';
+    compatDesc = '정서적으로 완충 역할을 해주고, 감정선이 급격히 흔들릴 때 균형을 잡아주는 사람이 잘 맞습니다.';
+  } else if (has('비견 강세형') && has('식상 발산형')) {
+    love = '연애에서도 자기 표현이 비교적 분명하고 반응 속도가 빠를 수 있습니다. 다만 주도성이 강한 만큼 조율이 부족하면 상대가 밀린다고 느낄 수 있습니다.';
+    relationship = '관계에서 존재감이 뚜렷하고, 맞는 사람과는 금방 가까워질 수 있습니다. 대신 기준이 맞지 않으면 거리 두기도 빠를 수 있습니다.';
+    compatDesc = '지나치게 비슷한 타입보다, 감정 완충과 현실 조율이 가능한 사람이 더 안정적으로 맞을 수 있습니다.';
+  } else {
+    love = '연애에서는 겉으로 보이는 태도와 실제 속마음이 완전히 같지 않을 수 있습니다. 가까워질수록 본래 패턴이 더 선명하게 드러나는 편입니다.';
+    relationship = '관계에서는 감정과 기준이 함께 작동하는 복합형에 가깝습니다. 누구에게나 같은 속도로 열리는 타입은 아닐 수 있습니다.';
+    compatDesc = '부족한 축을 보완해주면서도 기본 리듬이 크게 어긋나지 않는 사람이 더 잘 맞습니다.';
+  }
 
   return {
     love,
     relationship,
-    compatible_mbti: compat,
-    compat_desc: '너무 닮은 사람보다, 부족한 축을 보완해주면서도 기본 리듬이 크게 어긋나지 않는 타입이 더 잘 맞을 수 있습니다.',
+    compatible_mbti: compatMap[mbti.type] || mbti.secondary,
+    compat_desc: compatDesc,
   };
 }
 
@@ -911,6 +911,7 @@ function buildRelationshipCards(mbti, features) {
 function buildResponseData(computed) {
   const features = calculateStructuralFeatures(computed);
   const mbti = calculateMbti(features, computed);
+  const narrative = buildStructureDrivenNarrative(computed, features, mbti);
 
   return {
     features,
@@ -919,7 +920,7 @@ function buildResponseData(computed) {
       secondary: mbti.secondary,
       scores: mbti.scores,
       confidence: Object.fromEntries(
-        Object.entries(mbti.axes).map(([k,v]) => [
+        Object.entries(mbti.axes).map(([k, v]) => [
           k,
           {
             result: v.result,
@@ -931,14 +932,8 @@ function buildResponseData(computed) {
         ])
       )
     },
-    interpretation_blocks: {
-      summary: buildSummary(computed, features, mbti),
-      personality: buildPersonality(computed, features, mbti),
-      relationship: buildRelationship(features, mbti),
-      caution: buildCaution(features, mbti),
-      reason_summary: `1순위 ${mbti.type}, 2순위 ${mbti.secondary}, 일간 강도 ${features.dayMasterStrengthLabel}, 핵심 패턴 ${features.dominantPatterns.slice(0,3).join(', ')}`,
-    },
-    relationship_cards: buildRelationshipCards(mbti, features),
+    interpretation_blocks: narrative,
+    relationship_cards: buildRelationshipCards(mbti, features, narrative.structure_labels),
   };
 }
 
