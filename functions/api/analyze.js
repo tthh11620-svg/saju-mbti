@@ -667,43 +667,46 @@ function calculateMbti(features, computed) {
     features.expressionDrive * 0.35 +
     features.flexibility * 0.15;
 
-  let iScore =
-    features.supportDrive * 0.45 +
-    features.emotionalContainment * 0.35 +
-    features.internalConflict * 0.25;
+   let iScore =
+    features.supportDrive * 0.55 +
+    features.emotionalContainment * 0.45 +
+    features.internalConflict * 0.35;
 
-  if ((tg('식신') + tg('상관')) <= 1) iScore += 0.6;
-  if ((tg('정관') + tg('편관')) >= 3) iScore += 0.5;
-  if (isWaterDayMaster) iScore += 0.35;
-  if (features.dayMasterStrengthLabel === '신약') iScore += 0.3;
+  if ((tg('식신') + tg('상관')) <= 1) iScore += 0.9;
+  if ((tg('정관') + tg('편관')) >= 3) iScore += 0.35; // 관성이 강하다고 무조건 외부형은 아님
+  if (isWaterDayMaster) iScore += 0.45;
+  if (features.dayMasterStrengthLabel === '신약') iScore += 0.35;
+  if (features.relationalSensitivity >= 2.6) iScore += 0.25;
 
   // N/S
-  let nScore =
-    features.abstractionFocus * 0.5 +
-    features.internalConflict * 0.2 +
-    features.relationalSensitivity * 0.2;
+   let nScore =
+    features.abstractionFocus * 0.58 +
+    features.internalConflict * 0.24 +
+    features.relationalSensitivity * 0.22;
 
   let sScore =
-    features.realityFocus * 0.5 +
-    features.structureNeed * 0.2 +
-    features.controlDrive * 0.15;
+    features.realityFocus * 0.46 +
+    features.structureNeed * 0.22 +
+    features.controlDrive * 0.16;
 
   if (isWaterDayMaster) nScore += 0.35;
   if ((tg('정관') + tg('편관')) >= 3 && (tg('식신') + tg('상관')) <= 1) sScore += 0.45;
 
   // T/F
-  let tScore =
-    features.controlDrive * 0.45 +
-    features.realityFocus * 0.25 +
-    features.structureNeed * 0.2;
+    let tScore =
+    features.controlDrive * 0.40 +
+    features.realityFocus * 0.22 +
+    features.structureNeed * 0.18;
 
   let fScore =
-    features.relationalSensitivity * 0.4 +
-    features.supportDrive * 0.25 +
-    features.internalConflict * 0.15;
+    features.relationalSensitivity * 0.52 +
+    features.supportDrive * 0.32 +
+    features.internalConflict * 0.22;
 
-  if (isWaterDayMaster) fScore += 0.25;
-  if ((tg('정관') + tg('편관')) >= 3) tScore += 0.25;
+  if (isWaterDayMaster) fScore += 0.35;
+  if ((tg('정관') + tg('편관')) >= 3) tScore += 0.15;
+  if ((tg('식신') + tg('상관')) <= 1 && features.internalConflict >= 2.0) fScore += 0.35;
+  if (features.emotionalContainment >= 2.0) fScore += 0.15; // 감정 억제가 곧 감정 없음은 아님
 
   // J/P
   let jScore =

@@ -193,28 +193,36 @@ function renderPersonalityCards(data) {
   const section = document.getElementById("personality-section");
   if (!section) return;
 
-  const rel   = data.relationship_cards || {};
-  const compat = rel.compatible_mbti || data.mbti?.secondary || "----";
+  const relation = data.relationship_cards || {};
+  const compat = relation.compatible_mbti || data.mbti?.secondary || "----";
 
   section.innerHTML = `
-    <div class="card">
-      <div class="section-eyebrow">💝 관계에서 드러나는 나</div>
-      <div class="p-grid">
-        <div class="p-card">
-          <span class="p-card__icon">💝</span>
-          <div class="p-card__title">연애할 때</div>
-          <div class="p-card__desc">${escapeHtml(rel.love || "")}</div>
+    <div class="card" style="background:#fff;border:1px solid #e8e8e8;border-radius:20px;padding:22px;box-shadow:0 4px 14px rgba(0,0,0,.04);">
+      <div class="section-eyebrow" style="font-size:14px;color:#555;margin-bottom:12px;font-weight:700;">💝 관계에서 드러나는 나</div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+        <div style="border:1px solid #ececec;border-radius:16px;padding:18px;background:#fafafa;">
+          <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:10px;">연애할 때</div>
+          <div style="font-size:15px;line-height:1.8;color:#222;">
+            ${escapeHtml(relation.love || '')}
+          </div>
         </div>
-        <div class="p-card">
-          <span class="p-card__icon">🤝</span>
-          <div class="p-card__title">관계에서</div>
-          <div class="p-card__desc">${escapeHtml(rel.relationship || "")}</div>
+
+        <div style="border:1px solid #ececec;border-radius:16px;padding:18px;background:#fafafa;">
+          <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:10px;">관계에서</div>
+          <div style="font-size:15px;line-height:1.8;color:#222;">
+            ${escapeHtml(relation.relationship || '')}
+          </div>
         </div>
-        <div class="p-card p-card--accent">
-          <span class="p-card__icon">✨</span>
-          <div class="p-card__title">보완 궁합</div>
-          <div class="p-card__compat">${escapeHtml(compat)}</div>
-          <div class="p-card__desc">${escapeHtml(rel.compat_desc || "")}</div>
+
+        <div style="border:1px solid #ececec;border-radius:16px;padding:18px;background:#fafafa;">
+          <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:10px;">보완 궁합</div>
+          <div style="display:inline-block;background:#111;color:#fff;border-radius:999px;padding:7px 12px;font-weight:700;margin-bottom:10px;">
+            ${escapeHtml(compat)}
+          </div>
+          <div style="font-size:15px;line-height:1.8;color:#222;">
+            ${escapeHtml(relation.compat_desc || '')}
+          </div>
         </div>
       </div>
     </div>

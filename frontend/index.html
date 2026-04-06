@@ -1082,7 +1082,7 @@
         localStorage.setItem("theme", "dark");
       }
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+   <!-- 운영 전 테스트 단계에서는 service worker 비활성화 -->if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
   </script>
 </body>
-</html>
+</html> >
