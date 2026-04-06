@@ -5,46 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>개인정보처리방침 — 사주MBTI</title>
   <meta name="description" content="사주MBTI 서비스의 개인정보처리방침입니다." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --primary: #6c63ff; --bg: #f5f4ff; --card: #fff;
-      --text: #2d2b55; --muted: #888; --border: #e0deff;
+      --primary: #6C63FF; --primary-dark: #4B44CC;
+      --bg: #F5F4FF; --surface-1: #FFFFFF; --surface-2: #F0EEFF;
+      --text-primary: #1C1A3A; --text-secondary: #4E4C6A; --text-muted: #9896B0;
+      --border: #E2DFFF; --border-strong: #C5C0FF;
+      --shadow-md: 0 4px 20px rgba(108,99,255,.12);
+      --r-lg: 20px; --r-md: 12px;
+      --font-display: 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+      --font-ui: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
     }
     [data-theme="dark"] {
-      --bg: #0f0e1a; --card: #1a1828; --text: #e8e6ff;
-      --muted: #8884aa; --border: #2e2a4a;
+      --primary: #8B83FF; --primary-dark: #6C63FF;
+      --bg: #0C0B1A; --surface-1: #161428; --surface-2: #1E1C35;
+      --text-primary: #EDE9FF; --text-secondary: #9D9AC0; --text-muted: #6B6890;
+      --border: #2A2648; --border-strong: #3D3868;
+      --shadow-md: 0 4px 20px rgba(0,0,0,.4);
     }
-    body { font-family: 'Segoe UI','Apple SD Gothic Neo',sans-serif; background:var(--bg); color:var(--text); padding:40px 16px 80px; line-height:1.8; transition:background .3s,color .3s; }
-    .container { max-width:720px; margin:0 auto; }
-    .card { background:var(--card); border-radius:16px; padding:40px; box-shadow:0 4px 24px rgba(108,99,255,.1); }
-    h1 { font-size:1.8rem; color:var(--primary); margin-bottom:8px; }
-    .updated { font-size:.85rem; color:var(--muted); margin-bottom:32px; }
-    h2 { font-size:1.1rem; font-weight:700; color:var(--text); margin:28px 0 10px; }
-    p { margin-bottom:12px; font-size:.95rem; color:var(--text); }
-    ul { padding-left:20px; margin-bottom:12px; }
-    li { margin-bottom:6px; font-size:.95rem; }
-    .back { display:inline-block; margin-bottom:24px; color:var(--primary); text-decoration:none; font-weight:600; font-size:.9rem; }
-    .back:hover { text-decoration:underline; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg); color: var(--text-primary);
+      padding: 40px 16px 80px;
+      line-height: 1.75;
+      transition: background .3s, color .3s;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    .card {
+      background: var(--surface-1);
+      border-radius: var(--r-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-bottom: 28px;
+      color: var(--primary); text-decoration: none;
+      font-size: .875rem; font-weight: 700;
+      transition: gap .2s;
+    }
+    .back:hover { gap: 10px; }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 1.75rem; font-weight: 900;
+      color: var(--primary); margin-bottom: 6px;
+      letter-spacing: -.02em;
+    }
+    .updated {
+      font-size: .8125rem; color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .section-eyebrow {
+      font-size: .75rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--primary);
+      display: flex; align-items: center; gap: 8px;
+      margin: 32px 0 12px;
+    }
+    .section-eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .section-eyebrow:first-of-type { margin-top: 0; }
+
+    p { margin-bottom: 12px; font-size: .9375rem; color: var(--text-secondary); }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; font-size: .9375rem; color: var(--text-secondary); }
+
     .theme-toggle {
-      position:fixed; top:16px; right:16px;
-      width:44px; height:44px; background:var(--card); border:1.5px solid var(--border);
-      border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;
-      font-size:1.2rem; box-shadow:0 4px 12px rgba(0,0,0,.1);
+      position: fixed; top: 16px; right: 16px; z-index: 999;
+      width: 44px; height: 44px;
+      background: var(--surface-1); border: 1.5px solid var(--border);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; box-shadow: var(--shadow-md);
+      transition: background .3s, transform .15s;
     }
+    .theme-toggle:hover { transform: scale(1.08); background: var(--surface-2); }
   </style>
 </head>
 <body>
   <button class="theme-toggle" id="theme-toggle">🌙</button>
   <div class="container">
-    <a href="/" class="back">← 사주MBTI 홈으로</a>
+    <a href="/" class="back">← 홈으로</a>
     <div class="card">
       <h1>개인정보처리방침</h1>
       <p class="updated">최종 수정일: 2025년 1월 1일</p>
 
       <p>사주MBTI(이하 "서비스")는 이용자의 개인정보를 중요하게 생각하며, 「개인정보 보호법」을 준수합니다.</p>
 
-      <h2>1. 수집하는 개인정보</h2>
+      <div class="section-eyebrow">1. 수집하는 개인정보</div>
       <p>서비스는 분석을 위해 아래 정보를 수집합니다.</p>
       <ul>
         <li>생년월일, 출생 시각 (사주 계산 목적)</li>
@@ -53,32 +107,32 @@
       </ul>
       <p>이메일, 이름, 연락처 등 식별 가능한 개인정보는 수집하지 않습니다.</p>
 
-      <h2>2. 개인정보의 이용 목적</h2>
+      <div class="section-eyebrow">2. 개인정보의 이용 목적</div>
       <ul>
         <li>사주 명리학 기반 MBTI 분석 결과 제공</li>
         <li>서비스 품질 개선을 위한 통계 분석 (익명화 처리)</li>
       </ul>
 
-      <h2>3. 개인정보의 보유 및 이용 기간</h2>
+      <div class="section-eyebrow">3. 보유 및 이용 기간</div>
       <p>입력된 생년월일 및 출생 시각은 분석 결과 생성 후 서버에 저장되지 않습니다. Firebase Firestore에 저장되는 데이터는 서비스 개선 목적으로만 사용되며, 특정 개인을 식별할 수 없는 형태로 보관됩니다.</p>
 
-      <h2>4. 제3자 제공</h2>
+      <div class="section-eyebrow">4. 제3자 제공</div>
       <p>서비스는 이용자의 개인정보를 외부에 제공하지 않습니다. 단, AI 분석을 위해 입력 데이터(생년월일, 출생 시각)가 OpenAI API로 전송될 수 있으며, OpenAI의 개인정보처리방침이 적용됩니다.</p>
 
-      <h2>5. 쿠키 및 분석 도구</h2>
+      <div class="section-eyebrow">5. 쿠키 및 분석 도구</div>
       <p>서비스는 테마 설정 저장을 위해 브라우저 localStorage를 사용합니다. 별도의 광고 추적 쿠키는 사용하지 않습니다.</p>
 
-      <h2>6. 이용자의 권리</h2>
+      <div class="section-eyebrow">6. 이용자의 권리</div>
       <p>이용자는 언제든지 브라우저의 localStorage를 초기화하여 저장된 설정 정보를 삭제할 수 있습니다.</p>
 
-      <h2>7. 문의</h2>
+      <div class="section-eyebrow">7. 문의</div>
       <p>개인정보 처리에 관한 문의사항은 서비스 내 피드백 기능을 통해 연락해 주시기 바랍니다.</p>
     </div>
   </div>
   <script>
     const toggle = document.getElementById("theme-toggle");
     if (localStorage.getItem("theme") === "dark") {
-      document.documentElement.setAttribute("data-theme","dark");
+      document.documentElement.setAttribute("data-theme", "dark");
       toggle.textContent = "☀️";
     }
     toggle.addEventListener("click", () => {

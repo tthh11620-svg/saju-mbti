@@ -151,10 +151,10 @@ function renderPart2(data) {
   container.innerHTML = "";
 
   const axes = [
-    { key: "E/I",  a: "E", b: "I",  aName: "외향형", bName: "내향형",  style: "bar",    icon: "⚡" },
-    { key: "N/S",  a: "N", b: "S",  aName: "직관형", bName: "감각형",  style: "versus", icon: "🔭" },
-    { key: "T/F",  a: "T", b: "F",  aName: "사고형", bName: "감정형",  style: "scale",  icon: "⚖️" },
-    { key: "J/P",  a: "J", b: "P",  aName: "판단형", bName: "인식형",  style: "bar",    icon: "🗓️" },
+    { key: "E/I",  a: "E", b: "I",  aName: "외향형", bName: "내향형",  style: "bar",    icon: "⚡", sub: "에너지는 어디서 충전하나요?" },
+    { key: "N/S",  a: "N", b: "S",  aName: "직관형", bName: "감각형",  style: "versus", icon: "🔭", sub: "정보를 어떻게 받아들이나요?" },
+    { key: "T/F",  a: "T", b: "F",  aName: "사고형", bName: "감정형",  style: "scale",  icon: "⚖️", sub: "무엇을 기준으로 판단하나요?" },
+    { key: "J/P",  a: "J", b: "P",  aName: "판단형", bName: "인식형",  style: "bar",    icon: "🗓️", sub: "삶을 어떻게 구조화하나요?" },
   ];
 
   for (const axis of axes) {
@@ -170,14 +170,13 @@ function renderPart2(data) {
     let html = "";
 
     if (axis.style === "bar") {
-      // E/I, J/P — 큰 슬라이더 바
       html = `
         <div class="axis-card">
-          <div class="axis-title">
-            ${axis.icon} ${axis.key} 축
+          <div class="axis-header">
+            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
             <span class="axis-winner-badge">${winner} ${winName}</span>
           </div>
-          <div class="axis-subtitle">${axis.a}(${axis.aName}) ${aRatio}% &nbsp;vs&nbsp; ${axis.b}(${axis.bName}) ${bRatio}%</div>
+          <div class="axis-subtitle">${axis.sub}</div>
           <div class="big-bar-wrap">
             <div class="big-bar-fill" style="width:${aRatio}%">
               <span>${aRatio}%</span>
@@ -190,14 +189,13 @@ function renderPart2(data) {
         </div>`;
 
     } else if (axis.style === "versus") {
-      // N/S — 좌우 카드 대비
       html = `
         <div class="axis-card">
-          <div class="axis-title">
-            ${axis.icon} ${axis.key} 축
+          <div class="axis-header">
+            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
             <span class="axis-winner-badge">${winner} ${winName}</span>
           </div>
-          <div class="axis-subtitle">정보를 어떻게 받아들이나요?</div>
+          <div class="axis-subtitle">${axis.sub}</div>
           <div class="versus-wrap">
             <div class="versus-side ${isAWin ? 'active' : 'inactive'}">
               <div class="vs-letter">${axis.a}</div>
@@ -214,14 +212,13 @@ function renderPart2(data) {
         </div>`;
 
     } else if (axis.style === "scale") {
-      // T/F — 저울 카드
       html = `
         <div class="axis-card">
-          <div class="axis-title">
-            ${axis.icon} ${axis.key} 축
+          <div class="axis-header">
+            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
             <span class="axis-winner-badge">${winner} ${winName}</span>
           </div>
-          <div class="axis-subtitle">무엇을 기준으로 판단하나요?</div>
+          <div class="axis-subtitle">${axis.sub}</div>
           <div class="scale-wrap">
             <div class="scale-side ${isAWin ? 'active' : 'inactive'}">
               <div class="scale-letter">${axis.a}</div>
