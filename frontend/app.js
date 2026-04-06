@@ -4,47 +4,30 @@ import { app } from "./firebase-config.js";
 const db = getFirestore(app);
 const API_BASE = "";
 
-// ── 일간 설명 ──
+// ── 일간 정보 (간결 표기) ──────────────────────────────────
 const DAY_MASTER_INFO = {
-  '甲': { name: '갑목(甲木) — 큰 나무', desc: '하늘을 향해 곧게 뻗는 대목(大木)의 기운이에요. 목표를 향한 추진력과 리더십이 강하고, 한번 마음먹으면 쉽게 꺾이지 않는 타입 🌳' },
-  '乙': { name: '을목(乙木) — 덩굴 식물', desc: '바람에 흔들려도 끊어지지 않는 유연한 초목의 기운이에요. 부드럽지만 끈질기고, 사람 사이를 자연스럽게 이어주는 매력이 있어요 🌿' },
-  '丙': { name: '병화(丙火) — 태양', desc: '온 세상을 밝히는 태양의 기운이에요. 에너지가 넘치고 어디서든 존재감이 빛나며, 주변 사람들에게 활력을 불어넣는 타입 ☀️' },
-  '丁': { name: '정화(丁火) — 촛불', desc: '어둠 속에서 은은하게 빛나는 불꽃의 기운이에요. 섬세하고 감성적이며, 가까운 사람에게는 누구보다 따뜻한 존재예요 🕯️' },
-  '戊': { name: '무토(戊土) — 큰 산', desc: '묵직하게 자리를 지키는 대산(大山)의 기운이에요. 안정감과 포용력이 있고, 주변 사람들의 든든한 버팀목이 되어주는 타입 🏔️' },
-  '己': { name: '기토(己土) — 논밭', desc: '만물을 키워내는 비옥한 대지의 기운이에요. 세심하고 배려심이 깊으며, 조용하지만 모든 걸 품어내는 힘이 있어요 🌾' },
-  '庚': { name: '경금(庚金) — 원석', desc: '제련되기를 기다리는 강한 금속의 기운이에요. 원칙과 기준이 분명하고, 도전과 자극을 통해 더욱 빛나는 타입 ⚔️' },
-  '辛': { name: '신금(辛金) — 보석', desc: '이미 갈고닦인 정교한 보석의 기운이에요. 예민하고 완벽주의적이며, 아름다움과 품격에 대한 감각이 남다른 타입 💎' },
-  '壬': { name: '임수(壬水) — 큰 강', desc: '드넓게 흘러가는 대하(大河)의 기운이에요. 지혜롭고 포용력이 크며, 막힌 곳을 돌아가는 유연한 사고방식을 가진 타입 🌊' },
-  '癸': { name: '계수(癸水) — 빗물', desc: '대지를 촉촉이 적시는 빗물과 이슬의 기운이에요. 감수성이 풍부하고 직관력이 뛰어나며, 깊은 내면의 세계를 가진 타입 💧' },
+  '甲': { name: '갑목(甲木)', desc: '곧게 밀고 나가는 추진력과 방향성이 강한 편' },
+  '乙': { name: '을목(乙木)', desc: '유연하고 섬세하며 관계 흐름을 잘 읽는 편' },
+  '丙': { name: '병화(丙火)', desc: '표현력과 바깥으로 드러나는 에너지가 비교적 강한 편' },
+  '丁': { name: '정화(丁火)', desc: '섬세하고 집중력이 있으며 감정 온도를 세밀하게 다루는 편' },
+  '戊': { name: '무토(戊土)', desc: '기준과 중심을 지키려는 힘이 크고 안정감이 있는 편' },
+  '己': { name: '기토(己土)', desc: '현실감각이 좋고 세심하며 꾸준히 쌓아가는 편' },
+  '庚': { name: '경금(庚金)', desc: '결단력과 직선성이 있으며 기준이 분명한 편' },
+  '辛': { name: '신금(辛金)', desc: '정교하고 예민하며 완성도와 디테일을 중시하는 편' },
+  '壬': { name: '임수(壬水)', desc: '유연하고 넓게 보며 변화 흐름을 읽는 편' },
+  '癸': { name: '계수(癸水)', desc: '섬세하고 관찰력이 좋으며 내면 감수성이 깊은 편' },
 };
 
-const ELEM_NAME  = { '목': '木 목', '화': '火 화', '토': '土 토', '금': '金 금', '수': '水 수' };
-const ELEM_COLOR = { '목': '#4caf50', '화': '#f44336', '토': '#ff9800', '금': '#9e9e9e', '수': '#2196f3' };
+const ELEM_NAME = { '목': '木 목', '화': '火 화', '토': '土 토', '금': '金 금', '수': '水 수' };
 const PILLAR_ELEM = {
   '甲':'목','乙':'목','丙':'화','丁':'화','戊':'토','己':'토','庚':'금','辛':'금','壬':'수','癸':'수',
   '子':'수','丑':'토','寅':'목','卯':'목','辰':'토','巳':'화','午':'화','未':'토','申':'금','酉':'금','戌':'토','亥':'수',
 };
 
-// ── 성향 카드 — 4개 차원별 문구 ──
-const LOVE_STYLE = {
-  'ET': '감정보다 행동으로 사랑을 표현해요. 직접적이고 주도적이라 답답함이 없는 연애 스타일이에요.',
-  'EF': '표현이 풍부하고 스킨십도 자연스러워요. 연인을 늘 설레게 만드는 에너지가 넘쳐요.',
-  'IT': '쉽게 마음을 열진 않지만, 한번 열리면 깊이 헌신해요. 말보다 행동으로 마음을 전해요.',
-  'IF': '감수성이 풍부하고 낭만적이에요. 감정을 천천히 쌓아가며 진하게 사랑하는 타입이에요.',
-};
-const REL_STYLE = {
-  'NJ': '의미 있는 대화와 비전을 나누는 관계를 선호해요. 넓은 인맥보다 깊은 소수가 편해요.',
-  'NP': '새로운 아이디어 얘기에 눈이 빛나요. 자유롭고 자극적인 관계를 좋아해요.',
-  'SJ': '책임감 있고 믿음직스러운 존재예요. 약속을 잘 지키고 오래 함께하는 관계를 중시해요.',
-  'SP': '즉흥적이고 유쾌한 에너지로 주변을 밝혀요. 부담 없이 어울리는 관계를 선호해요.',
-};
-// 잘 맞는 유형 (심리적 상보성 기반)
-const COMPAT_MAP = {
-  'INTJ':'ENFP', 'INTP':'ENTJ', 'INFJ':'ENTP', 'INFP':'ENFJ',
-  'ISTJ':'ESFP', 'ISTP':'ESFJ', 'ISFJ':'ESTP', 'ISFP':'ESTJ',
-  'ENTJ':'INTP', 'ENTP':'INFJ', 'ENFJ':'INFP', 'ENFP':'INTJ',
-  'ESTJ':'ISFP', 'ESTP':'ISFJ', 'ESFJ':'ISTP', 'ESFP':'ISTJ',
-};
+// label → 시각 강도 바 너비
+const LABEL_BAR_WIDTH = { balanced: 50, close: 62, lean: 75, clear: 88 };
+// label → 배지 텍스트
+const LABEL_TEXT = { balanced: '거의 비슷', close: '근소 우세', lean: '우세', clear: '뚜렷' };
 
 const form          = document.getElementById("saju-form");
 const calendarType  = document.getElementById("calendar-type");
@@ -84,7 +67,10 @@ form.addEventListener("submit", async (e) => {
     if (!res.ok) {
       const text = await res.text();
       let msg = `서버 오류 (${res.status})`;
-      try { msg = JSON.parse(text).error || JSON.parse(text).detail || msg; } catch {}
+      try {
+        const parsed = JSON.parse(text);
+        msg = parsed.error || parsed.detail || msg;
+      } catch {}
       throw new Error(msg + (text ? `: ${text.slice(0, 200)}` : ""));
     }
 
@@ -98,166 +84,201 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-// ──────────────────────────────────────────────────────────
-// 결과 렌더링 — MBTI 먼저, 사주는 보조
-// ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// 결과 렌더링 순서: MBTI → 해석 블록 → 관계 카드 → 확장 카드 → CTA → 사주 상세
+// ─────────────────────────────────────────────────────────
 function renderResult(data) {
   resultSection.style.display = "block";
   resultSection.scrollIntoView({ behavior: "smooth" });
 
-  // 1. MBTI 결과 (최상단)
-  renderMbtiResult(data);
-  // 2. 연애/관계 성향 카드
+  renderMbtiHero(data);
+  renderAxisCards(data);
+  renderInterpretationBlocks(data);
   renderPersonalityCards(data);
-  // 3. AI 해석 (markdownToHtml은 index.html의 #interpretation에 주입)
-  document.getElementById("interpretation").innerHTML = markdownToHtml(data.interpretation || "");
-  // 4. 공유/다시하기 CTA
+  renderExtensionCards(data);
   renderPostCTA(data.mbti?.type || "");
-  // 5. 사주 원국 (접기 영역 — 관심 있는 사람만)
   renderSajuDetails(data);
 }
 
-// ── MBTI 결과 카드 ──
-function renderMbtiResult(data) {
-  const mbti = data.mbti?.type || "----";
-  const conf = data.mbti?.confidence || {};
+// ── 1. MBTI 히어로 배지 ────────────────────────────────────
+function renderMbtiHero(data) {
+  const mbti      = data.mbti?.type      || "----";
+  const secondary = data.mbti?.secondary || "";
 
   document.getElementById("mbti-badge").textContent = mbti;
-  document.getElementById("mbti-hero-desc").innerHTML =
-    `<strong>당신의 타고난 유형은 ${mbti}</strong>태어난 기운이 만들어낸 본래의 성격 패턴이에요.`;
 
-  const container = document.getElementById("axis-cards");
+  const secHtml = secondary
+    ? `<div class="mbti-hero__secondary">인접 유형 <strong>${escapeHtml(secondary)}</strong></div>`
+    : "";
+
+  document.getElementById("mbti-hero-desc").innerHTML = `
+    <strong>타고난 유형 ${escapeHtml(mbti)}</strong>
+    ${secHtml}
+    <div class="mbti-hero__sub">사주 8자 구조가 말해주는 기질적 성향이에요</div>
+  `;
+}
+
+// ── 2. 축별 카드 ──────────────────────────────────────────
+function renderAxisCards(data) {
+  const confidence = data.mbti?.confidence || {};
+  const container  = document.getElementById("axis-cards");
   container.innerHTML = "";
 
   const axes = [
-    { key: "E/I", a: "E", b: "I", aName: "외향형", bName: "내향형", style: "bar",    icon: "⚡", sub: "에너지를 어디서 충전하나요?" },
-    { key: "N/S", a: "N", b: "S", aName: "직관형", bName: "감각형", style: "versus", icon: "🔭", sub: "어떻게 정보를 받아들이나요?" },
-    { key: "T/F", a: "T", b: "F", aName: "사고형", bName: "감정형", style: "scale",  icon: "⚖️", sub: "무엇을 기준으로 판단하나요?" },
-    { key: "J/P", a: "J", b: "P", aName: "계획형", bName: "탐색형", style: "bar",    icon: "🗓️", sub: "삶을 어떻게 구조화하나요?" },
+    { key: "E/I", icon: "⚡", title: "에너지 방향" },
+    { key: "N/S", icon: "🔭", title: "정보 처리" },
+    { key: "T/F", icon: "⚖️", title: "판단 기준" },
+    { key: "J/P", icon: "🗓️", title: "생활 운영" },
   ];
 
   for (const axis of axes) {
-    const info    = conf[axis.key] || { result: "?", ratio: 50 };
-    const winner  = info.result;
-    const ratio   = info.ratio;
-    const loser   = (100 - ratio).toFixed(1);
-    const isAWin  = winner === axis.a;
-    const aRatio  = isAWin ? ratio : loser;
-    const bRatio  = isAWin ? loser : ratio;
-    const winName = isAWin ? axis.aName : axis.bName;
+    const info = confidence[axis.key];
+    if (!info) continue;
 
-    let html = "";
+    const labelText  = LABEL_TEXT[info.label]     || "근소 우세";
+    const barWidth   = LABEL_BAR_WIDTH[info.label] || 60;
+    const reasons    = (info.reasons || []).slice(0, 2);
+    const isBalanced = info.label === "balanced";
 
-    if (axis.style === "bar") {
-      html = `
-        <div class="axis-card">
-          <div class="axis-header">
-            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
-            <span class="axis-winner-badge">${winner} ${winName}</span>
-          </div>
-          <div class="axis-subtitle">${axis.sub}</div>
-          <div class="big-bar-wrap">
-            <div class="big-bar-fill" style="width:${aRatio}%">
-              <span>${aRatio}%</span>
-            </div>
-          </div>
-          <div class="bar-labels">
-            <span class="bar-label-left">${axis.a} ${axis.aName}</span>
-            <span class="bar-label-right">${axis.b} ${axis.bName}</span>
-          </div>
-        </div>`;
+    const reasonsHtml = reasons.length
+      ? `<ul class="axis-reasons">${reasons.map(r => `<li>${escapeHtml(r)}</li>`).join("")}</ul>`
+      : "";
 
-    } else if (axis.style === "versus") {
-      html = `
-        <div class="axis-card">
-          <div class="axis-header">
-            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
-            <span class="axis-winner-badge">${winner} ${winName}</span>
-          </div>
-          <div class="axis-subtitle">${axis.sub}</div>
-          <div class="versus-wrap">
-            <div class="versus-side ${isAWin ? 'active' : 'inactive'}">
-              <div class="vs-letter">${axis.a}</div>
-              <div class="vs-name">${axis.aName}</div>
-              <div class="vs-pct">${aRatio}%</div>
-            </div>
-            <div class="versus-divider">vs</div>
-            <div class="versus-side ${!isAWin ? 'active' : 'inactive'}">
-              <div class="vs-letter">${axis.b}</div>
-              <div class="vs-name">${axis.bName}</div>
-              <div class="vs-pct">${bRatio}%</div>
-            </div>
-          </div>
-        </div>`;
-
-    } else if (axis.style === "scale") {
-      html = `
-        <div class="axis-card">
-          <div class="axis-header">
-            <div class="axis-title">${axis.icon} ${axis.key} 축</div>
-            <span class="axis-winner-badge">${winner} ${winName}</span>
-          </div>
-          <div class="axis-subtitle">${axis.sub}</div>
-          <div class="scale-wrap">
-            <div class="scale-side ${isAWin ? 'active' : 'inactive'}">
-              <div class="scale-letter">${axis.a}</div>
-              <div class="scale-name">${axis.aName}</div>
-              <div class="scale-pct">${aRatio}%</div>
-            </div>
-            <div class="scale-side ${!isAWin ? 'active' : 'inactive'}">
-              <div class="scale-letter">${axis.b}</div>
-              <div class="scale-name">${axis.bName}</div>
-              <div class="scale-pct">${bRatio}%</div>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    container.insertAdjacentHTML("beforeend", html);
+    container.insertAdjacentHTML("beforeend", `
+      <div class="axis-card">
+        <div class="axis-header">
+          <span class="axis-title">${axis.icon} ${axis.key} 축 <span class="axis-title__sub">${axis.title}</span></span>
+          <span class="axis-badge ${isBalanced ? 'axis-badge--dim' : ''}">${labelText}</span>
+        </div>
+        <div class="axis-display">${escapeHtml(info.display || `${info.result} 우세`)}</div>
+        <div class="axis-strength-bar">
+          <div class="axis-strength-bar__fill" style="width:${barWidth}%"></div>
+        </div>
+        ${reasonsHtml}
+      </div>
+    `);
   }
 }
 
-// ── 연애/관계 성향 카드 ──
+// ── 3. 해석 블록 (이미 .card 안에 있으므로 외부 래핑 없음) ──
+function renderInterpretationBlocks(data) {
+  const box    = document.getElementById("interpretation");
+  if (!box) return;
+
+  const blocks    = data.interpretation_blocks || {};
+  const mbti      = data.mbti?.type      || "-";
+  const secondary = data.mbti?.secondary || "-";
+
+  const items = [
+    { label: "1순위 / 인접 유형",     text: `${mbti} / ${secondary}`,      strong: true },
+    { label: "한줄 요약",             text: blocks.summary      || "" },
+    { label: "성향 핵심",             text: blocks.personality  || "" },
+    { label: "관계 · 연애 포인트",    text: blocks.relationship || "" },
+    { label: "주의할 점",             text: blocks.caution      || "" },
+    { label: "근거 요약",             text: blocks.reason_summary || "", small: true },
+  ].filter(item => item.text);
+
+  box.innerHTML = items.map((item, i) => `
+    <div class="result-block ${i > 0 ? 'result-block--bordered' : ''}">
+      <div class="result-block__label">${item.label}</div>
+      <div class="result-block__content ${item.small ? 'result-block__content--small' : ''}">
+        ${item.strong ? `<strong class="type-pill">${escapeHtml(mbti)}</strong> <span class="type-pill type-pill--dim">${escapeHtml(secondary)}</span>` : escapeHtml(item.text)}
+      </div>
+    </div>
+  `).join("");
+}
+
+// ── 4. 관계 성향 카드 ─────────────────────────────────────
 function renderPersonalityCards(data) {
-  const mbti = data.mbti?.type;
-  if (!mbti || mbti.length < 4) return;
-
-  const ei = mbti[0], ns = mbti[1], tf = mbti[2], jp = mbti[3];
-  const loveKey   = ei + tf;
-  const relKey    = ns + jp;
-  const love      = LOVE_STYLE[loveKey]  || "풍부한 감성과 진심으로 관계를 쌓아가요.";
-  const rel       = REL_STYLE[relKey]    || "진정성 있는 관계를 소중히 여기는 타입이에요.";
-  const compat    = COMPAT_MAP[mbti]     || "??";
-
   const section = document.getElementById("personality-section");
   if (!section) return;
 
+  const rel   = data.relationship_cards || {};
+  const compat = rel.compatible_mbti || data.mbti?.secondary || "----";
+
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">💝 나의 관계 스타일</div>
-      <div class="personality-grid">
+      <div class="section-eyebrow">💝 관계에서 드러나는 나</div>
+      <div class="p-grid">
         <div class="p-card">
-          <div class="p-card__icon">💝</div>
-          <div class="p-card__title">연애할 때 나는</div>
-          <div class="p-card__desc">${love}</div>
+          <span class="p-card__icon">💝</span>
+          <div class="p-card__title">연애할 때</div>
+          <div class="p-card__desc">${escapeHtml(rel.love || "")}</div>
         </div>
         <div class="p-card">
-          <div class="p-card__icon">🤝</div>
-          <div class="p-card__title">관계에서 나는</div>
-          <div class="p-card__desc">${rel}</div>
+          <span class="p-card__icon">🤝</span>
+          <div class="p-card__title">관계에서</div>
+          <div class="p-card__desc">${escapeHtml(rel.relationship || "")}</div>
         </div>
-        <div class="p-card">
-          <div class="p-card__icon">⚡</div>
-          <div class="p-card__title">케미 폭발 유형</div>
-          <div class="p-card__badge">${compat}</div>
-          <div class="p-card__desc">에너지가 잘 맞는 유형이에요!</div>
+        <div class="p-card p-card--accent">
+          <span class="p-card__icon">✨</span>
+          <div class="p-card__title">보완 궁합</div>
+          <div class="p-card__compat">${escapeHtml(compat)}</div>
+          <div class="p-card__desc">${escapeHtml(rel.compat_desc || "")}</div>
         </div>
       </div>
     </div>
   `;
 }
 
-// ── 공유 / 다시하기 CTA ──
+// ── 5. 확장 카드 (오픈 1개 + 잠금 3개) ────────────────────
+function renderExtensionCards(data) {
+  const section   = document.getElementById("extension-cards-section");
+  if (!section) return;
+
+  const mbti      = data.mbti?.type      || "----";
+  const secondary = data.mbti?.secondary || "----";
+  const confidence = data.mbti?.confidence || {};
+
+  // 가장 박빙인 축 찾기
+  let closestAxis = "", closestDisplay = "";
+  let minGap = Infinity;
+  for (const [key, info] of Object.entries(confidence)) {
+    if (info.label === "balanced" || info.label === "close") {
+      const scores = Object.values(info.scores || {});
+      const gap = scores.length === 2 ? Math.abs(scores[0] - scores[1]) : Infinity;
+      if (gap < minGap) { minGap = gap; closestAxis = key; closestDisplay = info.display || ""; }
+    }
+  }
+
+  const openCardHtml = `
+    <div class="ext-card ext-card--open">
+      <div class="ext-card__icon">🔀</div>
+      <div class="ext-card__title">겉 MBTI vs 타고난 MBTI</div>
+      <div class="ext-card__desc">설문 결과와 사주 결과가 다를 수 있어요.</div>
+      <div class="ext-card__preview">
+        1순위 <strong>${escapeHtml(mbti)}</strong> · 인접 <strong>${escapeHtml(secondary)}</strong>
+        ${closestAxis ? `<br>박빙 축: <em>${closestAxis}</em> — ${escapeHtml(closestDisplay)}` : ""}
+      </div>
+    </div>
+  `;
+
+  const lockedCards = [
+    { icon: "💘", title: "연애 심화 분석", desc: "내 연애 패턴 깊게 보기" },
+    { icon: "👥", title: "친구/동료와 내 모습", desc: "직장과 친구 사이에서 달라지는 나" },
+    { icon: "⚡", title: "갈등 상황의 나", desc: "스트레스 받을 때 어떻게 반응하나요?" },
+  ].map(c => `
+    <div class="ext-card ext-card--locked">
+      <span class="ext-card__lock">🔒</span>
+      <div class="ext-card__icon">${c.icon}</div>
+      <div class="ext-card__title">${c.title}</div>
+      <div class="ext-card__desc">${c.desc}</div>
+      <div class="ext-card__coming">준비 중이에요</div>
+    </div>
+  `).join("");
+
+  section.innerHTML = `
+    <div class="card">
+      <div class="section-eyebrow">🧩 더 알아볼 수 있어요</div>
+      <div class="ext-grid">
+        ${openCardHtml}
+        ${lockedCards}
+      </div>
+    </div>
+  `;
+}
+
+// ── 6. 공유 / 다시하기 CTA ────────────────────────────────
 function renderPostCTA(mbti) {
   const section = document.getElementById("post-cta-section");
   if (!section) return;
@@ -265,26 +286,21 @@ function renderPostCTA(mbti) {
   section.innerHTML = `
     <div class="card">
       <div class="section-eyebrow">이것도 궁금하지 않나요?</div>
-      <p class="post-cta-desc">결과가 흥미로우셨나요? 친구나 연인의 타입도 확인해보세요!</p>
-      <div class="post-cta-grid">
-        <button class="post-cta-btn post-cta-btn--primary" id="share-btn">
-          🔗 결과 공유하기
-        </button>
-        <button class="post-cta-btn" id="reanalyze-btn">
-          🔄 다시 분석하기
-        </button>
+      <p class="cta-desc">결과가 흥미로우셨나요? 친구나 연인의 유형도 확인해보세요!</p>
+      <div class="cta-row">
+        <button class="cta-btn cta-btn--primary" id="share-btn">🔗 결과 공유하기</button>
+        <button class="cta-btn" id="reanalyze-btn">🔄 다시 분석하기</button>
       </div>
     </div>
   `;
 
   document.getElementById("share-btn")?.addEventListener("click", () => {
-    const text = `사주로 분석한 내 타고난 MBTI는 ${mbti}!\n나도 해보고 싶으면 👉`;
+    const text = `사주 기반으로 본 내 MBTI는 ${mbti}. 나도 해보려면 여기서 확인해봐 👇`;
     if (navigator.share) {
-      navigator.share({ title: `내 사주 MBTI: ${mbti}`, text, url: location.href })
-        .catch(() => {});
+      navigator.share({ title: `내 사주 MBTI: ${mbti}`, text, url: location.href }).catch(() => {});
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(`${text} ${location.href}`)
-        .then(() => alert("링크가 복사됐어요! 친구에게 공유해보세요 😊"));
+        .then(() => alert("링크가 복사됐어요 😊"));
     }
   });
 
@@ -294,16 +310,15 @@ function renderPostCTA(mbti) {
   });
 }
 
-// ── 사주 원국 (접기 영역) ──
+// ── 7. 사주 원국 상세 (접기 영역) ─────────────────────────
 function renderSajuDetails(data) {
-  const pillars = data.pillars || {};
-  const dm      = data.day_master || "";
-  const dmInfo  = DAY_MASTER_INFO[dm] || { name: dm, desc: "" };
+  const pillars   = data.pillars || {};
+  const dm        = data.day_master || "";
+  const dmInfo    = DAY_MASTER_INFO[dm] || { name: dm, desc: "" };
+  const structure = data.saju_structure || {};
 
-  document.getElementById("part1-title").textContent =
-    `${dm}일간 — ${dmInfo.name.split("—")[1]?.trim() || ""}`;
-  document.getElementById("part1-subtitle").textContent =
-    "사주 8자를 통해 오행 에너지와 기질의 뿌리를 확인해보세요.";
+  document.getElementById("part1-title").textContent    = dmInfo.name;
+  document.getElementById("part1-subtitle").textContent = "사주 8자 구조는 MBTI 결과의 근거 자료입니다.";
 
   const pillarsMap = [
     ["pillar-year",  "년주"],
@@ -316,15 +331,14 @@ function renderSajuDetails(data) {
   pillarsMap.forEach(([id, key], i) => {
     const val = pillars[key] || "-";
     document.getElementById(id).textContent = val;
-    if (val.length === 2) {
-      const e1 = PILLAR_ELEM[val[0]], e2 = PILLAR_ELEM[val[1]];
-      document.getElementById(elemIds[i]).textContent = `${e1 || ""}·${e2 || ""}`;
-    }
+    document.getElementById(elemIds[i]).textContent =
+      val.length === 2 ? `${PILLAR_ELEM[val[0]] || ""}·${PILLAR_ELEM[val[1]] || ""}` : "";
   });
 
   document.getElementById("dm-char").textContent = dm;
   document.getElementById("dm-name").textContent  = dmInfo.name;
-  document.getElementById("dm-desc").textContent  = dmInfo.desc;
+  document.getElementById("dm-desc").textContent  =
+    `${dmInfo.desc}${structure.dayMasterStrengthLabel ? ` / 일간 강도: ${structure.dayMasterStrengthLabel}` : ""}`;
 
   renderFiveElements(data.five_elements, data.five_elements_status);
 }
@@ -340,7 +354,7 @@ function renderFiveElements(counts, status) {
       <div class="elem-row">
         <span class="elem-name">${ELEM_NAME[elem] || elem}</span>
         <div class="elem-bar-wrap">
-          <div class="elem-bar" style="width:${pct}%; background:${ELEM_COLOR[elem] || '#999'}"></div>
+          <div class="elem-bar" style="width:${pct}%"></div>
         </div>
         <span class="elem-count">${count}개 (${status?.[elem] || ""})</span>
       </div>
@@ -348,9 +362,9 @@ function renderFiveElements(counts, status) {
   }
 }
 
-// ──────────────────────────────────────────────────────────
-// Firebase Firestore 저장
-// ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// Firestore 저장
+// ─────────────────────────────────────────────────────────
 async function saveToFirestore(data, payload) {
   try {
     await addDoc(collection(db, "saju_results"), {
@@ -360,45 +374,46 @@ async function saveToFirestore(data, payload) {
         hour: payload.hour, minute: payload.minute,
         gender: payload.gender, is_lunar: payload.is_lunar,
       },
-      mbti_type:             data.mbti?.type || null,
-      mbti_confidence:       data.mbti?.confidence || null,
-      pillars:               data.pillars,
-      day_master:            data.day_master,
-      five_elements:         data.five_elements,
-      interpretation_preview: (data.interpretation || "").slice(0, 500),
+      mbti_type:      data.mbti?.type      || null,
+      mbti_secondary: data.mbti?.secondary || null,
+      mbti_confidence: data.mbti?.confidence || null,
+      pillars:         data.pillars,
+      day_master:      data.day_master,
+      five_elements:   data.five_elements,
+      interpretation_preview: (data.interpretation_blocks?.summary || "").slice(0, 500),
     });
   } catch (err) {
     console.warn("Firestore 저장 실패:", err.message);
   }
 }
 
-// ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 // 유틸
-// ──────────────────────────────────────────────────────────
-function showLoading(on) { loadingEl.style.display = on ? "flex" : "none"; }
+// ─────────────────────────────────────────────────────────
+function showLoading(on)  { loadingEl.style.display = on ? "flex" : "none"; }
 
 function clearResult() {
   resultSection.style.display = "none";
-  errorBox.style.display = "none";
-  errorBox.textContent = "";
+  errorBox.style.display      = "none";
+  errorBox.textContent        = "";
+
+  // 동적 생성 섹션 비우기
+  ["personality-section", "extension-cards-section", "post-cta-section"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = "";
+  });
 }
 
 function showError(msg) {
   errorBox.style.display = "block";
-  errorBox.textContent = `오류: ${msg}`;
+  errorBox.textContent   = `오류: ${msg}`;
 }
 
-function markdownToHtml(md) {
-  return md
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm,  "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm,   "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g,     "<em>$1</em>")
-    .replace(/^- (.+)$/gm,    "<li>$1</li>")
-    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
-    .replace(/\n{2,}/g, "</p><p>")
-    .replace(/\n/g, "<br>")
-    .replace(/^(?!<[hup])(.+)$/gm, "<p>$1</p>")
-    .replace(/<p><\/p>/g, "");
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
