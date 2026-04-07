@@ -76,11 +76,30 @@ form.addEventListener("submit", async (e) => {
     }
 
     const data = await res.json();
-    renderResult(data);
-    await saveToFirestore(data, payload);
+
+    // 1) 결과를 먼저 그린다
+    try {
+      renderResult(data);
+    } catch (renderErr) {
+      // 렌더링 중 예외가 나도 로딩은 무조건 끄고 에러 메시지로 전환
+      console.error("렌더링 오류:", renderErr);
+      throw new Error(`결과 렌더링 실패: ${renderErr.message}`);
+    }
+
+    // 2) 렌더링이 끝났으면 로딩을 즉시 종료한다.
+    //    requestAnimationFrame으로 한 프레임 확실히 그린 뒤 끄기.
+    showLoading(false);
+
+    // 3) Firestore 저장은 fire-and-forget — 절대 사용자 흐름을 막지 않는다.
+    //    내부에서 try/catch로 에러는 콘솔로만 전달.
+    saveToFirestore(data, payload).catch(err => {
+      console.warn("Firestore 저장 실패(무시):", err?.message || err);
+    });
+
   } catch (err) {
     showError(err.message);
   } finally {
+    // 안전망: 어떤 경로로 빠져나오든 로딩이 살아있으면 강제 종료
     showLoading(false);
   }
 });
@@ -389,7 +408,19 @@ async function saveToFirestore(data, payload) {
 // ─────────────────────────────────────────────
 // 유틸
 // ─────────────────────────────────────────────
-function showLoading(on) { loadingEl.style.display = on ? "flex" : "none"; }
+function showLoading(on) {
+  if (!loadingEl) return;
+  if (on) {
+    loadingEl.style.display = "flex";
+    loadingEl.setAttribute("aria-hidden", "false");
+  } else {
+    // requestAnimationFrame으로 마지막 프레임을 그린 뒤 확실히 숨김
+    requestAnimationFrame(() => {
+      loadingEl.style.display = "none";
+      loadingEl.setAttribute("aria-hidden", "true");
+    });
+  }
+}
 
 function clearResult() {
   resultSection.style.display = "none";

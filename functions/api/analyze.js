@@ -673,84 +673,151 @@ function buildAxisResult(axisKey, a, b, aScore, bScore, features, computed) {
 
 function calculateMbti(features, computed) {
   const ten = computed['십성_요약'];
-  const tg = n => ten[n] || 0;
+  const oh  = computed['오행_기본분포'];
+  const dm  = computed['일간'];
+  const tg  = n => ten[n] || 0;
+  const el  = n => oh[n] || 0;
 
-  const isWaterDayMaster = ['壬', '癸'].includes(computed['일간']);
-  const lowExpression = (tg('식신') + tg('상관')) <= 1;
-  const strongControl = (tg('정관') + tg('편관')) >= 3;
-  const strongSupport = (tg('정인') + tg('편인')) >= 2;
-  const highInnerConflict = features.internalConflict >= 2.2;
+  // ─── 십성 묶음 ───
+  // 식신: 따뜻한 관찰/표현 (S+F 약), 상관: 재해석/표현 (N+F 약)
+  // 편재: 사물·수치 인지 (S+T), 정재: 현실 운영 (S+T)
+  // 정관: 책임·구조 (S+J), 편관: 압박·결단 (T+J)
+  // 정인: 수용·공감 (F+I),  편인: 분석·통찰·거리두기 (N+T+I)  ← 여기가 핵심 분리
+  // 비견/겁재: 자기 기준 (E/J 약, T 약)
+  const sik = tg('식신'), sang = tg('상관');
+  const pyJae = tg('편재'), jJae = tg('정재');
+  const pyGwan = tg('편관'), jGwan = tg('정관');
+  const pyIn = tg('편인'), jIn = tg('정인');
+  const biGyeop = tg('비견') + tg('겁재');
 
-  // E / I
+  // ─── 일간 본질 (오행+음양) ───
+  const yangMetal = dm === '庚';                  // 직선·결단 → T+S
+  const yinMetal  = dm === '辛';                  // 정교·기준 → T+S(약)
+  const yangEarth = dm === '戊';                  // 중심·안정 → S+J
+  const yinEarth  = dm === '己';                  // 현실·세심 → S(약)
+  const yangFire  = dm === '丙';                  // 표현·확산 → E+(N약)
+  const yinFire   = dm === '丁';                  // 섬세·집중 → F(약)+I
+  const yangWood  = dm === '甲';                  // 추진·직진 → T(약)+J
+  const yinWood   = dm === '乙';                  // 유연·관계 → F(약)
+  const yangWater = dm === '壬';                  // 흐름·시야 → N(약)
+  const yinWater  = dm === '癸';                  // 내면·관찰 → I+(F약,N약)
+
+  const sinYak  = features.dayMasterStrengthLabel === '신약';
+  const sinGang = features.dayMasterStrengthLabel === '신강';
+  const lowExpression = (sik + sang) <= 1;
+  const highSupport   = (jIn + pyIn) >= 2;
+  const strongAnalysisIn = pyIn >= 2;             // 편인 강세 = 분석/통찰
+
+  // ============ E / I ============
+  // (사용자 요청: E/I 축은 흔들지 말 것 → 기존과 비슷한 톤 유지)
   let eScore =
     features.selfDrive * 0.34 +
-    features.expressionDrive * 0.24 +
+    features.expressionDrive * 0.26 +
     features.flexibility * 0.12;
 
   let iScore =
-    features.supportDrive * 0.55 +
-    features.emotionalContainment * 0.48 +
-    features.internalConflict * 0.38 +
+    features.supportDrive * 0.50 +
+    features.emotionalContainment * 0.42 +
+    features.internalConflict * 0.30 +
     features.structureNeed * 0.12;
 
-  if (lowExpression) iScore += 0.95;
-  if (strongControl) iScore += 0.35;
-  if (strongSupport) iScore += 0.35;
-  if (isWaterDayMaster) iScore += 0.45;
-  if (features.dayMasterStrengthLabel === '신약') iScore += 0.25;
-  if (features.relationalSensitivity >= 2.5) iScore += 0.2;
+  if (lowExpression) iScore += 0.9;
+  if (highSupport)   iScore += 0.30;
+  if (sinYak)        iScore += 0.20;
+  if (yinWater || yinFire) iScore += 0.25;
 
-  // N / S
+  // ============ N / S ============
+  // N: 추상·해석·통찰. 핵심 십성 = 편인, 상관(재해석), (보조)정인
+  // S: 현실·관찰·구체. 핵심 십성 = 식신, 편재, 정재, 정관, 토/금 오행
+  // 충돌·관계민감도는 N/S와 무관 → 제거
   let nScore =
-    features.abstractionFocus * 0.60 +
-    features.relationalSensitivity * 0.18 +
-    features.internalConflict * 0.22 +
-    features.supportDrive * 0.08;
+    pyIn  * 0.85 +              // 편인 = N의 1순위 시그널
+    sang  * 0.45 +              // 상관 = 재해석/표현
+    jIn   * 0.20 +              // 정인 = 약한 N
+    sik   * 0.15 +              // 식신은 양면 → N에 살짝
+    el('수') * 0.25 +
+    el('목') * 0.20;
 
   let sScore =
-    features.realityFocus * 0.46 +
-    features.structureNeed * 0.22 +
-    features.controlDrive * 0.18;
+    sik   * 0.35 +              // 식신 = 구체 관찰
+    pyJae * 0.45 +              // 편재 = 사물 인지
+    jJae  * 0.50 +              // 정재 = 현실 운영
+    jGwan * 0.40 +              // 정관 = 현실 책임
+    el('토') * 0.50 +
+    el('금') * 0.45 +
+    el('화') * 0.10;
 
-  if (isWaterDayMaster) nScore += 0.25;
-  if (strongSupport) nScore += 0.15;
-  if (strongControl && lowExpression) sScore += 0.15;
+  // 일간 본질 보너스
+  if (yangMetal) sScore += 0.55;
+  if (yinMetal)  sScore += 0.40;
+  if (yangEarth) sScore += 0.55;
+  if (yinEarth)  sScore += 0.30;
+  if (yangFire)  nScore += 0.30;
+  if (yangWater) nScore += 0.25;
+  if (yinWater)  nScore += 0.15;
 
-  // T / F
+  // 신약하면서 편인이 강하면 자기 안에서 의미를 찾는 구조 → N 강한 보너스
+  if (sinYak && strongAnalysisIn) nScore += 1.0;
+  // 신강하면서 편인이 강하면 자기 기준 안에서 사색하는 구조 → N 보너스
+  if (sinGang && strongAnalysisIn) nScore += 0.55;
+  // 편인 강세인데 정관이 없으면 외부 책임에 묶이지 않은 자유로운 사고 → N 보너스
+  if (strongAnalysisIn && jGwan === 0) nScore += 0.50;
+  // 신강하면서 정관·식신이 같이 있으면 현실 책임형 → S 보너스
+  if (sinGang && jGwan >= 1 && sik >= 1) sScore += 0.3;
+
+  // ============ T / F ============
+  // T: 분석·거리두기·기준. 편인(분석), 편재(수치), 편관(압박), 일간 본질
+  //    정관은 J 시그널이지 T 시그널이 아니므로 제외.
+  //    비견/겁재는 자기 기준 = J 시그널이지 사고형 시그널이 아니므로 제외.
+  // F: 공감·관계 온도. 정인(수용), 식신(따뜻한 표현), 상관(감정 표현)
   let tScore =
-    features.controlDrive * 0.34 +
-    features.realityFocus * 0.20 +
-    features.structureNeed * 0.16 +
-    features.selfDrive * 0.08;
+    pyIn   * 0.55 +             // 편인 = 분석/거리두기
+    pyJae  * 0.40 +             // 편재 = 객관화
+    jJae   * 0.30 +
+    pyGwan * 0.45 +             // 편관 = 압박/결단
+    el('금') * 0.30 +
+    el('토') * 0.15;
 
   let fScore =
-    features.relationalSensitivity * 0.52 +
-    features.supportDrive * 0.34 +
-    features.internalConflict * 0.24 +
-    features.emotionalContainment * 0.14;
+    jIn    * 0.85 +             // 정인 = F의 1순위 시그널
+    sik    * 0.35 +             // 식신 = 따뜻한 관찰/표현
+    sang   * 0.25 +
+    features.relationalSensitivity * 0.18;
 
-  if (isWaterDayMaster) fScore += 0.35;
-  if (strongSupport) fScore += 0.20;
-  if (lowExpression && highInnerConflict) fScore += 0.35;
-  if (strongControl) tScore += 0.12;
+  // 일간 본질 보너스
+  // 일간이 금이라도 식상이 강하면(≥3) 직선성·기준성이 누그러지므로 보너스 약화
+  const metalSoftened = (sik + sang) >= 3;
+  if (yangMetal) tScore += metalSoftened ? 0.20 : 0.55;
+  if (yinMetal)  tScore += metalSoftened ? 0.15 : 0.40;
+  if (yangEarth) tScore += 0.30;
+  if (yinEarth)  tScore += 0.15;
+  if (yangWood)  tScore += 0.25;
+  if (yinFire)   fScore += 0.35;
+  if (yinWood)   fScore += 0.30;
+  if (yinWater)  fScore += 0.20;
 
-  // J / P
+  // 일간이 금이고 수오행이 ≥2 → 식상 발달 = 따뜻한 표현/관찰 → F 보너스
+  if ((yangMetal || yinMetal) && el('수') >= 2) fScore += 0.40;
+
+  // ============ J / P ============
   let jScore =
     features.structureNeed * 0.46 +
     features.controlDrive * 0.26 +
-    features.emotionalContainment * 0.24 +
-    features.stabilityLevel * 0.10;
+    features.emotionalContainment * 0.22 +
+    features.stabilityLevel * 0.12 +
+    jGwan * 0.20;               // 정관 = 책임/구조의 핵심
 
   let pScore =
-    features.flexibility * 0.28 +
-    features.expressionDrive * 0.14 +
-    features.conflictLevel * 0.10;
+    features.flexibility * 0.30 +
+    features.expressionDrive * 0.16 +
+    features.conflictLevel * 0.10 +
+    sang * 0.15;
 
-  if (strongControl) jScore += 0.35;
+  if ((jGwan + pyGwan) >= 3) jScore += 0.35;
   if (lowExpression) jScore += 0.18;
-  if (features.conflictLevel >= 2.0 && strongControl) {
-    jScore += 0.30;
-    pScore -= 0.08;
+  if (yangEarth || yinEarth) jScore += 0.20;
+  if (sinGang && (jGwan + pyGwan) >= 2 && features.conflictLevel >= 2.0) {
+    jScore += 0.25;
   }
 
   const axes = {
