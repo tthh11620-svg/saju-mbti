@@ -298,7 +298,7 @@ function renderInterpretationBlocks(data) {
             <div class="result-block__label">이 사람 키워드</div>
             <div class="result-block__content">
               ${structureLabels.map(label => `
-                <span style="display:inline-block;background:var(--surface-2);color:var(--text-primary);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;margin:0 8px 8px 0;">
+                <span style="display:inline-block;background:var(--surface-2);color:var(--text-primary);border-radius:999px;padding:6px 14px;font-size:0.8125rem;font-weight:800;margin:0 8px 8px 0;">
                   ${escapeHtml(label)}
                 </span>
               `).join("")}
@@ -347,25 +347,25 @@ function renderPersonalityCards(data) {
 
       <div style="display:grid;grid-template-columns:1fr;gap:14px;">
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);">
-          <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:10px;">연애할 때</div>
-          <div style="font-size:15px;line-height:1.8;color:var(--text-primary);">
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">연애할 때</div>
+          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
             ${escapeHtml(relation.love || '')}
           </div>
         </div>
 
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);">
-          <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:10px;">관계에서</div>
-          <div style="font-size:15px;line-height:1.8;color:var(--text-primary);">
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">관계에서</div>
+          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
             ${escapeHtml(relation.relationship || '')}
           </div>
         </div>
 
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);">
-          <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:10px;">보완 궁합</div>
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">보완 궁합</div>
           <div style="display:inline-block;background:var(--text-primary);color:var(--surface-1);border-radius:999px;padding:7px 12px;font-weight:700;margin-bottom:10px;">
             ${escapeHtml(compat)}
           </div>
-          <div style="font-size:15px;line-height:1.8;color:var(--text-primary);">
+          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
             ${escapeHtml(relation.compat_desc || '')}
           </div>
         </div>
