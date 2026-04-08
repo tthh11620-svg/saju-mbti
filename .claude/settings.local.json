@@ -5,6 +5,4 @@
     ]
   }
 }
-"files.exclude": {
-  "**/.env": true
-}
+
