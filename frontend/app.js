@@ -345,23 +345,23 @@ function renderPersonalityCards(data) {
     <div class="card">
       <div class="section-eyebrow">💝 관계에서 드러나는 나</div>
 
-      <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr;gap:20px;">
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">💕 연애할 때</div>
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">💕 연애할 때</div>
           <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
             ${escapeHtml(relation.love || '')}
           </div>
         </div>
 
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">🤝 관계에서</div>
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🤝 관계에서</div>
           <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
             ${escapeHtml(relation.relationship || '')}
           </div>
         </div>
 
         <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:10px;">🌟 보완 궁합</div>
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🌟 보완 궁합</div>
           <div style="display:inline-block;background:var(--text-primary);color:var(--surface-1);border-radius:999px;padding:7px 12px;font-weight:700;margin-bottom:10px;">
             ${escapeHtml(compat)}
           </div>
