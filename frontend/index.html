@@ -842,6 +842,65 @@
     .site-footer__copy { font-size: var(--text-xs); color: var(--text-muted); opacity: .7; }
 
     /* ─────────────────────────────────────────
+       시간 입력 토글 (정확 모드)
+    ───────────────────────────────────────── */
+    .time-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s2);
+      width: 100%;
+      margin-top: var(--s5);
+      padding: 10px var(--s4);
+      background: none;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--r-md);
+      color: var(--primary);
+      font-size: var(--text-sm);
+      font-family: var(--font-ui);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+    .time-toggle-btn:hover { background: var(--primary-glow); border-color: var(--primary); }
+    .time-toggle-btn__arrow {
+      font-size: .7rem;
+      transition: transform .25s;
+      display: inline-block;
+    }
+    .time-toggle-btn.is-open .time-toggle-btn__arrow { transform: rotate(180deg); }
+
+    .time-hint {
+      margin-top: var(--s3);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .time-fields {
+      display: none;
+      margin-top: var(--s4);
+      padding-top: var(--s4);
+      border-top: 1px solid var(--border);
+      animation: fadeSlideIn .2s ease;
+    }
+    .time-fields.is-open { display: block; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .time-fields-hint {
+      font-size: var(--text-xs);
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: var(--s4);
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+    }
+
+    /* ─────────────────────────────────────────
        결과 미리보기 카드
     ───────────────────────────────────────── */
     .preview-section {
@@ -986,6 +1045,8 @@
     <!-- ── 입력 폼 ── -->
     <div class="card">
       <form id="saju-form" autocomplete="off">
+
+        <!-- 기본 입력 -->
         <div class="form-grid">
 
           <div class="form-group">
@@ -1012,16 +1073,6 @@
           </div>
 
           <div class="form-group">
-            <label for="hour">시 (0~23)</label>
-            <input type="number" id="hour" placeholder="예: 14" min="0" max="23" required />
-          </div>
-
-          <div class="form-group">
-            <label for="minute">분</label>
-            <input type="number" id="minute" placeholder="0" min="0" max="59" value="0" />
-          </div>
-
-          <div class="form-group">
             <label for="gender">성별</label>
             <select id="gender">
               <option value="M">남자</option>
@@ -1029,7 +1080,7 @@
             </select>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="grid-column: 1 / -1;">
             <label for="calendar-type">양력 / 음력</label>
             <select id="calendar-type">
               <option value="0">양력</option>
@@ -1037,12 +1088,38 @@
             </select>
           </div>
 
-          <div id="leap-month-row">
-            <input type="checkbox" id="leap-month" />
-            <label for="leap-month">윤달입니까?</label>
-          </div>
-
         </div>
+
+        <!-- 시간 입력 토글 -->
+        <button type="button" class="time-toggle-btn" id="time-toggle-btn">
+          ⏰ 출생 시간 입력하기 (선택)
+          <span class="time-toggle-btn__arrow">▾</span>
+        </button>
+        <p class="time-hint">출생 시간을 모르면 생략해도 돼요 — 년·월·일만으로도 분석됩니다</p>
+
+        <!-- 정확 모드: 시간 입력 -->
+        <div class="time-fields" id="time-fields">
+          <div class="time-fields-hint">⚡ 시간까지 입력하면 더 디테일한 해석을 볼 수 있어요</div>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="hour">출생 시 (0~23)</label>
+              <input type="number" id="hour" placeholder="예: 14" min="0" max="23" />
+            </div>
+
+            <div class="form-group">
+              <label for="minute">출생 분</label>
+              <input type="number" id="minute" placeholder="0" min="0" max="59" />
+            </div>
+
+            <div id="leap-month-row">
+              <input type="checkbox" id="leap-month" />
+              <label for="leap-month">윤달입니까?</label>
+            </div>
+
+          </div>
+        </div>
+
         <button type="submit" class="btn-submit">무료로 결과 보기 ✨</button>
       </form>
     </div>

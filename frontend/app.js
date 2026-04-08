@@ -41,6 +41,15 @@ calendarType.addEventListener("change", () => {
   leapMonthRow.style.display = calendarType.value === "1" ? "flex" : "none";
 });
 
+// 시간 입력 토글
+const timeToggleBtn = document.getElementById("time-toggle-btn");
+const timeFields    = document.getElementById("time-fields");
+timeToggleBtn.addEventListener("click", () => {
+  const isOpen = timeFields.classList.toggle("is-open");
+  timeToggleBtn.classList.toggle("is-open", isOpen);
+  timeToggleBtn.querySelector(".time-toggle-btn__arrow").style.transform = isOpen ? "rotate(180deg)" : "";
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearResult();
@@ -50,8 +59,8 @@ form.addEventListener("submit", async (e) => {
     year:          parseInt(document.getElementById("year").value),
     month:         parseInt(document.getElementById("month").value),
     day:           parseInt(document.getElementById("day").value),
-    hour:          parseInt(document.getElementById("hour").value),
-    minute:        parseInt(document.getElementById("minute").value),
+    hour:          parseInt(document.getElementById("hour").value) || 12,
+    minute:        parseInt(document.getElementById("minute").value) || 0,
     gender:        document.getElementById("gender").value,
     is_lunar:      calendarType.value === "1",
     is_leap_month: document.getElementById("leap-month")?.checked ?? false,
