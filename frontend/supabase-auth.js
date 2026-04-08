@@ -5,8 +5,8 @@
 //    Supabase 대시보드 → Settings → API 에서 확인 가능.
 //    anon key는 공개 키라 프론트엔드에 넣어도 안전합니다.
 // ─────────────────────────────────────────
-const SUPABASE_URL      = 'https://saju-mbti.supabase.co.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_yqiDaXs-FOukZ73yD6WSSw_ig7TCvAB';
+const SUPABASE_URL      = 'https://bzentfeysswapuwfordr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6ZW50ZmV5c3N3YXB1d2ZvcmRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NDQwNTMsImV4cCI6MjA5MTIyMDA1M30.f5PNpgLWDWqgJQQaSDRYV9-Igm24PRS3KScacRPJy8E';
 
 // ─── Supabase CDN (번들러 없이 ESM으로 직접 import) ───
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
