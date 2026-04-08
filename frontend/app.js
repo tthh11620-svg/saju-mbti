@@ -30,6 +30,18 @@ const AXIS_LABEL_TEXT = {
   clear: '뚜렷'
 };
 
+// 축별 행동 묘사형 힌트 (정의형 금지, 관찰형으로)
+const AXIS_HINTS = {
+  E: "사람들과 함께할 때 에너지가 올라오는 편. 말하면서 정리하는 타입",
+  I: "속으로 정리한 뒤 말이 나오는 편. 혼자 있어야 충전됨",
+  N: "현실보다 패턴과 가능성을 먼저 읽는 편. 디테일보다 맥락이 먼저",
+  S: "가능성보다 지금 조건을 먼저 체크하는 편. 현실 감각이 판단 기준",
+  T: "공감도 하지만 결국 기준과 논리가 판단의 중심에 있는 타입",
+  F: "사람 사이 온도와 맥락을 실제 판단 기준에 넣는 편",
+  J: "겉으론 유연해 보여도 속은 이미 정리 끝난 경우가 많음",
+  P: "결정보다 가능성을 열어두고 흐름에 맞게 조율하는 편",
+};
+
 const form          = document.getElementById("saju-form");
 const calendarType  = document.getElementById("calendar-type");
 const leapMonthRow  = document.getElementById("leap-month-row");
@@ -322,6 +334,7 @@ function renderMbtiResult(data) {
         </div>
 
         <div class="axis-display">${escapeHtml(info.display || `${info.result} 우세`)}</div>
+        ${AXIS_HINTS[info.result] ? `<div class="axis-hint">${AXIS_HINTS[info.result]}</div>` : ''}
 
         <div class="axis-strength-bar">
           <div class="axis-strength-bar__fill" style="width:${fillWidth}%"></div>
@@ -361,42 +374,25 @@ function renderInterpretationBlocks(data) {
   if (!box) return;
 
   const blocks = data.interpretation_blocks || {};
-  const mbti = data.mbti?.type || '-';
-  const secondary = data.mbti?.secondary || '-';
   const structureLabels = blocks.structure_labels || [];
 
   box.innerHTML = `
     <div class="result-block">
-      <div class="result-block__label">사주 MBTI / 인접 유형</div>
-      <div class="result-block__content">
-        <span class="type-pill">${escapeHtml(mbti)}</span>
-        <span class="type-pill type-pill--dim">${escapeHtml(secondary)}</span>
-      </div>
-    </div>
-
-    ${
-      structureLabels.length
-        ? `<div class="result-block">
-            <div class="result-block__label">🔑 이 사람 키워드</div>
-            <div class="result-block__content">
-              ${structureLabels.map(label => `
-                <span style="display:inline-block;background:var(--surface-2);color:var(--text-primary);border-radius:999px;padding:6px 14px;font-size:0.8125rem;font-weight:800;margin:0 8px 8px 0;">
-                  ${escapeHtml(label)}
-                </span>
-              `).join("")}
-            </div>
-          </div>`
-        : ''
-    }
-
-    <div class="result-block">
       <div class="result-block__label">💡 한 줄로 정리하면</div>
-      <div class="result-block__content">${escapeHtml(blocks.summary || '')}</div>
+      <div class="result-block__content" style="font-size:var(--text-base);font-weight:600;line-height:1.7;">${escapeHtml(blocks.summary || '')}</div>
     </div>
 
     <div class="result-block">
       <div class="result-block__label">🌟 이런 사람이에요</div>
       ${renderSentenceLines(blocks.personality || '')}
+      ${structureLabels.length ? `
+        <div style="margin-top:var(--s4);display:flex;flex-wrap:wrap;gap:8px;">
+          ${structureLabels.map(label => `
+            <span style="display:inline-block;background:var(--surface-3);color:var(--text-primary);border-radius:999px;padding:5px 14px;font-size:0.8125rem;font-weight:800;">
+              ${escapeHtml(label)}
+            </span>
+          `).join("")}
+        </div>` : ''}
     </div>
 
     <div class="result-block">
@@ -410,7 +406,7 @@ function renderInterpretationBlocks(data) {
     </div>
 
     <div class="result-block result-block--bordered">
-      <div class="result-block__label">왜 이렇게 나왔냐면</div>
+      <div class="result-block__label">🔍 사주 구조로 보면</div>
       <div class="result-block__content result-block__content--small">${escapeHtml(blocks.reason_summary || '')}</div>
     </div>
   `;
@@ -425,32 +421,29 @@ function renderPersonalityCards(data) {
 
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">💝 관계에서 드러나는 나</div>
+      <div class="section-eyebrow">💝 관계 패턴 — 알아두면 편해요</div>
 
       <div style="display:grid;grid-template-columns:1fr;gap:20px;">
-        <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
+
+        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
           <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">💕 연애할 때</div>
-          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
-            ${escapeHtml(relation.love || '')}
-          </div>
+          ${renderSentenceLines(relation.love || '')}
         </div>
 
-        <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🤝 관계에서</div>
-          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
-            ${escapeHtml(relation.relationship || '')}
-          </div>
+        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🤝 가까워지면</div>
+          ${renderSentenceLines(relation.relationship || '')}
         </div>
 
-        <div style="border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🌟 보완 궁합</div>
-          <div style="display:inline-block;background:var(--text-primary);color:var(--surface-1);border-radius:999px;padding:7px 12px;font-weight:700;margin-bottom:10px;">
-            ${escapeHtml(compat)}
+        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
+          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🔮 나한테 맞는 사람</div>
+          <div style="margin-bottom:14px;">
+            <span style="display:inline-block;background:var(--primary);color:#fff;border-radius:999px;padding:6px 16px;font-family:var(--font-display);font-weight:900;font-size:1rem;letter-spacing:2px;">${escapeHtml(compat)}</span>
+            <span style="display:inline-block;margin-left:8px;font-size:var(--text-xs);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">보완 궁합</span>
           </div>
-          <div style="font-size:0.9375rem;line-height:1.85;color:var(--text-primary);">
-            ${escapeHtml(relation.compat_desc || '')}
-          </div>
+          ${renderSentenceLines(relation.compat_desc || '')}
         </div>
+
       </div>
     </div>
   `;
@@ -462,44 +455,42 @@ function renderPostCTA(_mbti) {
 
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">이것도 궁금하지 않나요?</div>
+      <div class="section-eyebrow">👀 더 찌르는 질문들</div>
 
       <div class="next-grid">
 
         <div class="next-card next-card--open" id="next-love">
-          <span class="next-badge next-badge--included">결과에 포함</span>
-          <span class="next-card__arrow">↑</span>
+          <span class="next-badge next-badge--included">결과에 있음 ↑</span>
           <span class="next-card__icon">💘</span>
-          <div class="next-card__title">나는 연애할 때 어떤 타입?</div>
-          <div class="next-card__desc">연애 패턴과 보완 궁합 유형이 결과 안에 있어요. 다시 올려볼게요.</div>
+          <div class="next-card__title">왜 호감 있어도 티가 이상하게 날까?</div>
+          <div class="next-card__desc">연애 패턴이 위 결과에 담겨 있어요. 바로 올려볼게요.</div>
         </div>
 
         <div class="next-card next-card--open" id="next-relation">
-          <span class="next-badge next-badge--included">결과에 포함</span>
-          <span class="next-card__arrow">↑</span>
-          <span class="next-card__icon">👥</span>
-          <div class="next-card__title">친해지면 왜 이런 모습이 나올까?</div>
-          <div class="next-card__desc">해석 블록에 관계 패턴이 담겨 있어요. 다시 올려볼게요.</div>
+          <span class="next-badge next-badge--included">결과에 있음 ↑</span>
+          <span class="next-card__icon">🥶</span>
+          <div class="next-card__title">친해지면 갑자기 차가워 보이는 이유</div>
+          <div class="next-card__desc">관계 패턴 해석이 위에 있어요. 바로 올려볼게요.</div>
         </div>
 
         <div class="next-card next-card--soon">
           <span class="next-badge next-badge--soon">준비 중</span>
           <span class="next-card__icon">🔮</span>
-          <div class="next-card__title">나랑 잘 맞는 유형은 누구?</div>
-          <div class="next-card__desc">단순 궁합이 아니라 사주 구조로 보는 케미 분석이 곧 열려요.</div>
+          <div class="next-card__title">나한테 끌리는 사람 vs 오래 가는 사람</div>
+          <div class="next-card__desc">사주 구조로 보는 케미 분석, 곧 열려요.</div>
         </div>
 
         <div class="next-card next-card--soon">
           <span class="next-badge next-badge--soon">준비 중</span>
-          <span class="next-card__icon">😤</span>
-          <div class="next-card__title">대인관계에서 내가 오해받는 이유</div>
-          <div class="next-card__desc">의도와 다르게 보이는 상황, 왜 생기는지 사주로 읽어드릴게요.</div>
+          <span class="next-card__icon">🤔</span>
+          <div class="next-card__title">배려했는데 왜 상대는 차갑다고 느낄까?</div>
+          <div class="next-card__desc">의도랑 다르게 읽히는 이유, 사주로 풀어드릴게요.</div>
         </div>
 
       </div>
 
       <div class="next-reanalyze">
-        <span class="next-reanalyze__text">다른 사람 결과도 궁금하다면?</span>
+        <span class="next-reanalyze__text">친구 결과도 궁금하다면?</span>
         <button class="cta-btn" id="reanalyze-btn">🔄 다시 분석하기</button>
       </div>
     </div>
