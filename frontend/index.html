@@ -155,6 +155,11 @@
       padding: var(--card-pad);
       margin-bottom: var(--s6);
       border: 1px solid var(--border);
+      transition: box-shadow .25s, transform .25s;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
     }
 
     /* ─────────────────────────────────────────
@@ -487,9 +492,14 @@
       padding: var(--s5);
       border: 1px solid var(--border);
       background: var(--surface-1);
-      transition: border-color .2s;
+      box-shadow: var(--shadow-sm);
+      transition: border-color .2s, box-shadow .2s, transform .2s;
     }
-    .axis-card:hover { border-color: var(--border-strong); }
+    .axis-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
 
     .axis-header {
       display: flex;
@@ -716,7 +726,7 @@
       background: var(--surface-1);
       border-radius: var(--r-lg);
       border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-md);
       margin-bottom: var(--s6);
       overflow: hidden;
     }
@@ -851,6 +861,7 @@
       margin-bottom: var(--s6);
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow-lg);
     }
     .share-card::before {
       content: '';
@@ -993,13 +1004,18 @@
       border: 1px solid var(--border);
       background: var(--surface-1);
       position: relative;
-      transition: border-color .2s, transform .2s;
+      box-shadow: var(--shadow-sm);
+      transition: border-color .2s, box-shadow .2s, transform .2s;
     }
     .next-card--open {
       background: var(--surface-2);
       cursor: pointer;
     }
-    .next-card--open:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+    .next-card--open:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
     .next-card--soon { opacity: .58; }
 
     .next-badge {
@@ -1132,10 +1148,11 @@
       padding: var(--s5) var(--s6);
       display: flex;
       align-items: flex-start;
+      box-shadow: var(--shadow-sm);
       gap: var(--s4);
       transition: border-color .2s, transform .2s;
     }
-    .preview-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+    .preview-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); transform: translateY(-2px); }
     .preview-card__emoji {
       font-size: 1.6rem;
       flex-shrink: 0;
