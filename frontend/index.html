@@ -842,6 +842,78 @@
     .site-footer__copy { font-size: var(--text-xs); color: var(--text-muted); opacity: .7; }
 
     /* ─────────────────────────────────────────
+       결과 미리보기 카드
+    ───────────────────────────────────────── */
+    .preview-section {
+      margin-bottom: var(--s6);
+    }
+    .preview-label {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: var(--s4);
+    }
+    .preview-cards {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s3);
+    }
+    .preview-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--s5) var(--s6);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s4);
+      transition: border-color .2s, transform .2s;
+    }
+    .preview-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+    .preview-card__emoji {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      line-height: 1;
+      margin-top: 2px;
+    }
+    .preview-card__tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: .04em;
+      margin-bottom: var(--s2);
+    }
+    .preview-card__tag .mbti-chip {
+      background: var(--primary);
+      color: #fff;
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      letter-spacing: 1px;
+    }
+    .preview-card__tag .mbti-chip--dim {
+      background: var(--surface-3);
+      color: var(--text-secondary);
+    }
+    .preview-card__text {
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      line-height: 1.75;
+    }
+    .preview-card__sub {
+      margin-top: var(--s2);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─────────────────────────────────────────
        AdSense 광고 컨테이너
     ───────────────────────────────────────── */
     .ad-container {
@@ -866,6 +938,50 @@
       <h1 class="site-header__title">내 MBTI 검사 결과,<br>사주랑 얼마나 다를까? 🔮</h1>
       <p class="site-header__sub">설문은 지금의 나, 사주는 태어날 때의 나<br>둘이 얼마나 다른지 확인해봐요</p>
     </header>
+
+    <!-- ── 결과 미리보기 카드 ── -->
+    <div class="preview-section">
+      <div class="preview-label">이런 결과가 나와요</div>
+      <div class="preview-cards">
+
+        <div class="preview-card">
+          <div class="preview-card__emoji">🤔</div>
+          <div>
+            <div class="preview-card__tag">
+              <span class="mbti-chip">ENFP</span> 인줄 알았는데
+              <span class="mbti-chip mbti-chip--dim">INFJ</span> 기질
+            </div>
+            <div class="preview-card__text">겉으로는 에너지 넘치고 사람 좋아 보이는데, 사주상으론 혼자 생각 정리하고 의미 찾는 쪽이 훨씬 강해요.</div>
+            <div class="preview-card__sub">설문 MBTI와 타고난 기질이 다른 경우, 꽤 많아요 😅</div>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-card__emoji">💡</div>
+          <div>
+            <div class="preview-card__tag">
+              <span class="mbti-chip">E</span> 처럼 보이지만 진짜는
+              <span class="mbti-chip mbti-chip--dim">I</span>
+            </div>
+            <div class="preview-card__text">사람들 앞에선 활발한데, 집에 돌아오면 에너지가 방전돼요. 혼자 있어야 충전되는 타입이라면, 사주 MBTI는 I일 수 있어요.</div>
+            <div class="preview-card__sub">E/I 축이 박빙인 경우 인접 유형도 같이 알려드려요</div>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-card__emoji">💘</div>
+          <div>
+            <div class="preview-card__tag">
+              <span class="mbti-chip">F</span> 처럼 연애하지만 결정은
+              <span class="mbti-chip mbti-chip--dim">T</span>
+            </div>
+            <div class="preview-card__text">평소엔 감정이입도 잘 되고 공감도 빠른데, 중요한 결정 앞에선 논리와 기준이 먼저 나와요. 연애에서 이런 패턴 느껴본 적 있나요?</div>
+            <div class="preview-card__sub">T/F 판정 근거도 이유와 함께 보여드려요</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- ── 입력 폼 ── -->
     <div class="card">
