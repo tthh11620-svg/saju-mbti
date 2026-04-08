@@ -1206,6 +1206,71 @@
       overflow: hidden;
     }
     .ad-container ins { display: block; width: 100%; }
+
+    /* ─────────────────────────────────────────
+       3줄 요약 카드
+    ───────────────────────────────────────── */
+    .quick-summary {
+      background: var(--surface-1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-md);
+      padding: var(--s3) var(--card-pad);
+      margin-bottom: var(--s8);
+      border: 1px solid var(--border);
+      transition: box-shadow .25s, transform .25s;
+    }
+    .quick-summary:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .quick-summary__row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s3);
+      padding: var(--s4) 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .quick-summary__row:last-child { border-bottom: none; }
+    .quick-summary__icon { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; padding-top: 1px; }
+    .quick-summary__label {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      min-width: 76px;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .quick-summary__value { font-size: var(--text-sm); color: var(--text-primary); line-height: 1.6; }
+    .qs-accent {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: 900;
+      color: var(--primary);
+      letter-spacing: 2px;
+    }
+
+    /* ─────────────────────────────────────────
+       공유 프롬프트
+    ───────────────────────────────────────── */
+    .share-card__prompt {
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: rgba(255,255,255,.88);
+      text-align: center;
+      margin-bottom: var(--s4);
+      letter-spacing: .01em;
+    }
+
+    /* ─────────────────────────────────────────
+       단문 줄 표시
+    ───────────────────────────────────────── */
+    .sentence-lines { display: flex; flex-direction: column; gap: var(--s2); }
+    .sentence-line {
+      font-size: var(--text-sm);
+      color: var(--text-primary);
+      line-height: 1.65;
+      padding-left: var(--s3);
+      border-left: 2px solid var(--border-strong);
+    }
   </style>
 </head>
 <body>
@@ -1216,8 +1281,8 @@
     <!-- ── 헤더: MBTI 중심 카피 ── -->
     <header class="site-header">
       <div class="site-header__eyebrow">무료 · 1분 완성 · 출생 시간만 있으면 OK</div>
-      <h1 class="site-header__title">내 MBTI 검사 결과,<br>사주랑 얼마나 다를까? 🔮</h1>
-      <p class="site-header__sub">설문은 지금의 나, 사주는 태어날 때의 나<br>둘이 얼마나 다른지 확인해봐요</p>
+      <h1 class="site-header__title">겉으로는 E인데,<br>태생은 I일 수도 있음 🔮</h1>
+      <p class="site-header__sub">지금 MBTI랑 타고난 MBTI, 다를 수 있음<br>친구들이 아는 너 말고, 원래 너를 보여줌</p>
     </header>
 
     <!-- ── 결과 미리보기 카드 ── -->
@@ -1369,6 +1434,9 @@
     <!-- ── 결과 섹션: MBTI 먼저, 사주는 보조 ── -->
     <div id="result-section">
 
+      <!-- 0. 3줄 요약 카드 -->
+      <div id="quick-summary"></div>
+
       <!-- 1. 공유 카드 (캡처용 + 공유 버튼) -->
       <div class="share-card" id="share-card">
         <div class="share-card__brand">🔮 사주MBTI &nbsp;·&nbsp; saju-mbti.pages.dev</div>
@@ -1381,6 +1449,7 @@
         </div>
         <div class="share-card__summary" id="share-summary">분석 중…</div>
         <div class="share-card__axes" id="share-axes"></div>
+        <div class="share-card__prompt" id="share-prompt"></div>
         <div class="share-card__actions">
           <button class="share-card__btn share-card__btn--save" id="save-img-btn">📸 이미지로 저장</button>
           <button class="share-card__btn share-card__btn--share" id="share-result-btn">🔗 친구에게 공유</button>

@@ -143,6 +143,7 @@ function renderResult(data) {
   resultSection.style.display = "block";
   resultSection.scrollIntoView({ behavior: "smooth" });
 
+  renderQuickSummary(data);
   renderShareCard(data);
   renderMbtiResult(data);
   renderPersonalityCards(data);
@@ -184,6 +185,15 @@ function renderShareCard(data) {
     `);
   }
 
+  // 공유 프롬프트 문구
+  const eiResult = confidence['E/I']?.result;
+  const promptEl = document.getElementById("share-prompt");
+  if (promptEl) {
+    if (eiResult === 'I') promptEl.textContent = '나는 E처럼 사는 I였다 — 친구도 확인해봐 👇';
+    else if (eiResult === 'E') promptEl.textContent = '나는 I처럼 사는 E였다 — 친구도 확인해봐 👇';
+    else promptEl.textContent = '겉보기 MBTI랑 태생 MBTI 차이 공유하기 👀';
+  }
+
   // 이미지 저장
   document.getElementById("save-img-btn").onclick = async () => {
     const btn = document.getElementById("save-img-btn");
@@ -194,7 +204,7 @@ function renderShareCard(data) {
         scale: 2,
         useCORS: true,
         backgroundColor: null,
-        ignoreElements: el => el.id === "save-img-btn" || el.id === "share-result-btn",
+        ignoreElements: el => ["save-img-btn","share-result-btn","share-prompt"].includes(el.id),
       });
       const link = document.createElement("a");
       link.download = `사주MBTI_${mbti}.png`;
@@ -218,6 +228,63 @@ function renderShareCard(data) {
         .then(() => alert("링크가 복사됐어요 😊"));
     }
   };
+}
+
+function renderQuickSummary(data) {
+  const el = document.getElementById("quick-summary");
+  if (!el) return;
+
+  const blocks = data.interpretation_blocks || {};
+  const confidence = data.mbti?.confidence || {};
+  const secondary = data.mbti?.secondary || "";
+  const mbtiType = data.mbti?.type || "";
+
+  // 가장 센 축 찾기
+  const strength = { clear: 4, lean: 3, close: 2, balanced: 1 };
+  let strongest = null;
+  for (const [key, info] of Object.entries(confidence)) {
+    if (!strongest || (strength[info.label] || 0) > (strength[strongest.label] || 0)) {
+      strongest = { key, ...info };
+    }
+  }
+  const labelKo = { clear: '뚜렷', lean: '우세', close: '근소', balanced: '비슷' };
+
+  // 의외 포인트: caution 첫 문장
+  const cautionfull = blocks.caution || '';
+  const surprise = cautionfull.replace(/([.。])\s+/g, '$1\n').split('\n')[0].trim() || '—';
+
+  el.innerHTML = `
+    <div class="quick-summary">
+      <div class="quick-summary__row">
+        <span class="quick-summary__icon">💡</span>
+        <span class="quick-summary__label">한 줄 요약</span>
+        <span class="quick-summary__value">${escapeHtml(blocks.summary || '—')}</span>
+      </div>
+      <div class="quick-summary__row">
+        <span class="quick-summary__icon">⚡</span>
+        <span class="quick-summary__label">가장 센 축</span>
+        <span class="quick-summary__value">
+          ${strongest
+            ? `<span class="qs-accent">${escapeHtml(strongest.key)}</span> &nbsp;${escapeHtml(strongest.display || strongest.result + ' 우세')} <span style="font-size:var(--text-xs);color:var(--text-muted);">(${labelKo[strongest.label] || ''})</span>`
+            : '—'}
+        </span>
+      </div>
+      <div class="quick-summary__row">
+        <span class="quick-summary__icon">🤔</span>
+        <span class="quick-summary__label">의외 포인트</span>
+        <span class="quick-summary__value">${escapeHtml(surprise)}</span>
+      </div>
+      <div class="quick-summary__row">
+        <span class="quick-summary__icon">🔀</span>
+        <span class="quick-summary__label">인접 유형</span>
+        <span class="quick-summary__value">
+          ${secondary
+            ? `<span class="qs-accent" style="font-size:var(--text-sm);">${escapeHtml(mbtiType)} ↔ ${escapeHtml(secondary)}</span>`
+            : '해당 없음'}
+        </span>
+      </div>
+    </div>
+  `;
 }
 
 function renderMbtiResult(data) {
@@ -274,6 +341,21 @@ function renderMbtiResult(data) {
   }
 }
 
+function renderSentenceLines(text) {
+  if (!text) return `<div class="result-block__content"></div>`;
+  const lines = text
+    .replace(/([.。!?])\s+/g, '$1\n')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 3);
+  if (lines.length <= 1) {
+    return `<div class="result-block__content">${escapeHtml(text)}</div>`;
+  }
+  return `<div class="result-block__content sentence-lines">${
+    lines.map(s => `<div class="sentence-line">${escapeHtml(s)}</div>`).join('')
+  }</div>`;
+}
+
 function renderInterpretationBlocks(data) {
   const box = document.getElementById("interpretation");
   if (!box) return;
@@ -314,17 +396,17 @@ function renderInterpretationBlocks(data) {
 
     <div class="result-block">
       <div class="result-block__label">🌟 이런 사람이에요</div>
-      <div class="result-block__content">${escapeHtml(blocks.personality || '')}</div>
+      ${renderSentenceLines(blocks.personality || '')}
     </div>
 
     <div class="result-block">
       <div class="result-block__label">💬 연애·관계에선 이래요</div>
-      <div class="result-block__content">${escapeHtml(blocks.relationship || '')}</div>
+      ${renderSentenceLines(blocks.relationship || '')}
     </div>
 
     <div class="result-block">
       <div class="result-block__label">⚠️ 이건 조심하면 좋아요</div>
-      <div class="result-block__content">${escapeHtml(blocks.caution || '')}</div>
+      ${renderSentenceLines(blocks.caution || '')}
     </div>
 
     <div class="result-block result-block--bordered">
