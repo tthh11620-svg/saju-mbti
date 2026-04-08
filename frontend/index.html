@@ -180,6 +180,49 @@
     .theme-toggle:hover { transform: scale(1.08); background: var(--surface-2); }
 
     /* ─────────────────────────────────────────
+       Auth Bar
+    ───────────────────────────────────────── */
+    .auth-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: var(--s2);
+      margin-bottom: var(--s4);
+      min-height: 36px;
+    }
+    .auth-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: var(--surface-1);
+      color: var(--text-secondary);
+      transition: background .2s, border-color .2s, color .2s;
+      text-decoration: none;
+    }
+    .auth-btn:hover { background: var(--surface-2); border-color: var(--border-strong); color: var(--text-primary); }
+    .auth-btn--google {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .auth-btn--google:hover { background: var(--primary-glow); }
+    .auth-btn--logout { font-weight: 500; }
+    .auth-user-email {
+      font-size: var(--text-xs);
+      color: var(--text-secondary);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .auth-user-area { display: none; align-items: center; gap: var(--s2); }
+
+    /* ─────────────────────────────────────────
        Header — MBTI 중심 카피
     ───────────────────────────────────────── */
     .site-header {
@@ -1291,6 +1334,25 @@
 
   <div class="container">
 
+    <!-- ── Auth Bar ── -->
+    <div class="auth-bar" id="auth-bar">
+      <!-- 비로그인: Google 버튼 -->
+      <button class="auth-btn auth-btn--google" id="btn-google-login">
+        <svg width="14" height="14" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+          <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Google로 계속하기
+      </button>
+      <!-- 로그인 상태: 유저 정보 + 로그아웃 -->
+      <div class="auth-user-area" id="auth-user-area">
+        <span class="auth-user-email" id="auth-user-email"></span>
+        <button class="auth-btn auth-btn--logout" id="btn-logout">로그아웃</button>
+      </div>
+    </div>
+
     <!-- ── 헤더: MBTI 중심 카피 ── -->
     <header class="site-header">
       <div class="site-header__eyebrow">무료 · 1분 완성 · 출생 시간만 있으면 OK</div>
@@ -1657,5 +1719,8 @@
     });
    <!-- 운영 전 테스트 단계에서는 service worker 비활성화 -->if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
   </script>
+
+  <!-- Supabase Google Auth -->
+  <script type="module" src="./supabase-auth.js"></script>
 </body>
 </html> >
