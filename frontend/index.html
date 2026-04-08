@@ -977,6 +977,76 @@
     }
 
     /* ─────────────────────────────────────────
+       확장 메뉴 카드 (다음 단계)
+    ───────────────────────────────────────── */
+    .next-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s3);
+      margin-top: var(--s4);
+    }
+    @media (max-width: 480px) { .next-grid { grid-template-columns: 1fr; } }
+
+    .next-card {
+      border-radius: var(--r-lg);
+      padding: var(--s5);
+      border: 1px solid var(--border);
+      background: var(--surface-1);
+      position: relative;
+      transition: border-color .2s, transform .2s;
+    }
+    .next-card--open {
+      background: var(--surface-2);
+      cursor: pointer;
+    }
+    .next-card--open:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+    .next-card--soon { opacity: .58; }
+
+    .next-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: var(--s3);
+    }
+    .next-badge--included { background: var(--primary); color: #fff; }
+    .next-badge--soon { background: var(--surface-3); color: var(--text-muted); }
+
+    .next-card__icon { font-size: 1.4rem; margin-bottom: var(--s2); display: block; }
+    .next-card__title {
+      font-size: var(--text-sm);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: var(--s2);
+      line-height: 1.45;
+    }
+    .next-card__desc { font-size: var(--text-xs); color: var(--text-muted); line-height: 1.65; }
+    .next-card__arrow {
+      position: absolute;
+      top: var(--s4); right: var(--s4);
+      font-size: .7rem;
+      color: var(--primary);
+    }
+
+    .next-reanalyze {
+      margin-top: var(--s5);
+      padding-top: var(--s5);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--s4);
+      flex-wrap: wrap;
+    }
+    .next-reanalyze__text {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+    }
+
+    /* ─────────────────────────────────────────
        시간 입력 토글 (정확 모드)
     ───────────────────────────────────────── */
     .time-toggle-btn {
@@ -1302,7 +1372,7 @@
 
       <!-- 2. 축별 카드 (상세) -->
       <div class="card">
-        <div class="section-eyebrow">📊 4가지 축 상세 분석</div>
+        <div class="section-eyebrow">📊 E·I·N·S·T·F·J·P 각각 뜯어보면</div>
         <div class="axis-cards" id="axis-cards"></div>
       </div>
 
@@ -1383,27 +1453,27 @@
 
     <!-- ── 서비스 소개: MBTI 콘텐츠 중심 ── -->
     <div class="card">
-      <div class="section-eyebrow">이런 걸 알 수 있어요</div>
+      <div class="section-eyebrow">결과에서 이런 걸 볼 수 있어요</div>
       <div class="features-grid">
         <div class="feature-item">
           <span class="feature-icon">🪄</span>
-          <div class="feature-name">겉 MBTI vs 속 MBTI</div>
-          <div class="feature-desc">검사 결과와 다를 수 있어요. 태어난 시간이 말해주는 진짜 나를 확인해보세요.</div>
+          <div class="feature-name">설문 MBTI랑 얼마나 다를까?</div>
+          <div class="feature-desc">지금의 나와 태어날 때의 나, 둘이 같은지 다른지 비교해볼 수 있어요.</div>
         </div>
         <div class="feature-item">
           <span class="feature-icon">💝</span>
-          <div class="feature-name">연애할 때 나는?</div>
-          <div class="feature-desc">내가 몰랐던 연애 패턴이 보여요. 사주가 읽어주는 내 연애 스타일.</div>
+          <div class="feature-name">연애할 때 내 진짜 모습</div>
+          <div class="feature-desc">F처럼 보여도 결정은 T, 같은 패턴이 내 사주에도 보일 수 있어요.</div>
         </div>
         <div class="feature-item">
           <span class="feature-icon">⚡</span>
-          <div class="feature-name">케미 맞는 유형은?</div>
-          <div class="feature-desc">어떤 MBTI 유형과 에너지가 잘 맞는지 분석해드려요.</div>
+          <div class="feature-name">케미 잘 맞는 유형은?</div>
+          <div class="feature-desc">잘 맞는 MBTI 유형도 같이 나와요. 보완 궁합으로 보여드려요.</div>
         </div>
         <div class="feature-item">
-          <span class="feature-icon">🤖</span>
-          <div class="feature-name">AI 성향 핵심 요약</div>
-          <div class="feature-desc">사주 구조를 AI가 분석해 내 성향을 콕 집어줘요.</div>
+          <span class="feature-icon">🔮</span>
+          <div class="feature-name">왜 그런 결과가 나왔는지</div>
+          <div class="feature-desc">숫자와 글자 나열 말고, 이유까지 읽어주는 해석이 포함돼요.</div>
         </div>
       </div>
     </div>
@@ -1459,7 +1529,7 @@
         <a href="/privacy.html">개인정보처리방침</a>
       </div>
       <div class="site-footer__copy">
-        © 2025 사주MBTI. 본 서비스는 엔터테인먼트 목적으로 제공되며, 전문적인 심리 상담을 대체하지 않습니다.
+        © 2025 사주MBTI — 재미로 보는 사주 기반 MBTI예요. 전문 상담을 대체하진 않아요 🙂
       </div>
     </footer>
 

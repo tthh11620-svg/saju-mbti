@@ -262,7 +262,7 @@ function renderInterpretationBlocks(data) {
 
   box.innerHTML = `
     <div class="result-block">
-      <div class="result-block__label">1순위 / 2순위</div>
+      <div class="result-block__label">사주 MBTI / 인접 유형</div>
       <div class="result-block__content">
         <span class="type-pill">${escapeHtml(mbti)}</span>
         <span class="type-pill type-pill--dim">${escapeHtml(secondary)}</span>
@@ -272,7 +272,7 @@ function renderInterpretationBlocks(data) {
     ${
       structureLabels.length
         ? `<div class="result-block">
-            <div class="result-block__label">구조 키워드</div>
+            <div class="result-block__label">이 사람 키워드</div>
             <div class="result-block__content">
               ${structureLabels.map(label => `
                 <span style="display:inline-block;background:var(--surface-2);color:var(--text-primary);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;margin:0 8px 8px 0;">
@@ -285,27 +285,27 @@ function renderInterpretationBlocks(data) {
     }
 
     <div class="result-block">
-      <div class="result-block__label">한줄 요약</div>
+      <div class="result-block__label">한 줄로 정리하면</div>
       <div class="result-block__content">${escapeHtml(blocks.summary || '')}</div>
     </div>
 
     <div class="result-block">
-      <div class="result-block__label">성향 핵심</div>
+      <div class="result-block__label">이런 사람이에요</div>
       <div class="result-block__content">${escapeHtml(blocks.personality || '')}</div>
     </div>
 
     <div class="result-block">
-      <div class="result-block__label">관계/연애 포인트</div>
+      <div class="result-block__label">연애·관계에선 이래요</div>
       <div class="result-block__content">${escapeHtml(blocks.relationship || '')}</div>
     </div>
 
     <div class="result-block">
-      <div class="result-block__label">주의할 점</div>
+      <div class="result-block__label">이건 조심하면 좋아요</div>
       <div class="result-block__content">${escapeHtml(blocks.caution || '')}</div>
     </div>
 
     <div class="result-block result-block--bordered">
-      <div class="result-block__label">근거 요약</div>
+      <div class="result-block__label">왜 이렇게 나왔냐면</div>
       <div class="result-block__content result-block__content--small">${escapeHtml(blocks.reason_summary || '')}</div>
     </div>
   `;
@@ -351,35 +351,61 @@ function renderPersonalityCards(data) {
   `;
 }
 
-function renderPostCTA(mbti) {
+function renderPostCTA(_mbti) {
   const section = document.getElementById("post-cta-section");
   if (!section) return;
 
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">다음 단계</div>
-      <p class="cta-desc">
-        기본 결과는 확인했어요. 이후에는 관계 확장, 궁합, 연애 심화 카드로 연결하는 구조가 좋습니다.
-      </p>
-      <div class="cta-row">
-        <button class="cta-btn cta-btn--primary" id="share-btn">
-          🔗 결과 공유하기
-        </button>
-        <button class="cta-btn" id="reanalyze-btn">
-          🔄 다시 분석하기
-        </button>
+      <div class="section-eyebrow">이것도 궁금하지 않나요?</div>
+
+      <div class="next-grid">
+
+        <div class="next-card next-card--open" id="next-love">
+          <span class="next-badge next-badge--included">결과에 포함</span>
+          <span class="next-card__arrow">↑</span>
+          <span class="next-card__icon">💘</span>
+          <div class="next-card__title">나는 연애할 때 어떤 타입?</div>
+          <div class="next-card__desc">연애 패턴과 보완 궁합 유형이 결과 안에 있어요. 다시 올려볼게요.</div>
+        </div>
+
+        <div class="next-card next-card--open" id="next-relation">
+          <span class="next-badge next-badge--included">결과에 포함</span>
+          <span class="next-card__arrow">↑</span>
+          <span class="next-card__icon">👥</span>
+          <div class="next-card__title">친해지면 왜 이런 모습이 나올까?</div>
+          <div class="next-card__desc">해석 블록에 관계 패턴이 담겨 있어요. 다시 올려볼게요.</div>
+        </div>
+
+        <div class="next-card next-card--soon">
+          <span class="next-badge next-badge--soon">준비 중</span>
+          <span class="next-card__icon">🔮</span>
+          <div class="next-card__title">나랑 잘 맞는 유형은 누구?</div>
+          <div class="next-card__desc">단순 궁합이 아니라 사주 구조로 보는 케미 분석이 곧 열려요.</div>
+        </div>
+
+        <div class="next-card next-card--soon">
+          <span class="next-badge next-badge--soon">준비 중</span>
+          <span class="next-card__icon">😤</span>
+          <div class="next-card__title">대인관계에서 내가 오해받는 이유</div>
+          <div class="next-card__desc">의도와 다르게 보이는 상황, 왜 생기는지 사주로 읽어드릴게요.</div>
+        </div>
+
+      </div>
+
+      <div class="next-reanalyze">
+        <span class="next-reanalyze__text">다른 사람 결과도 궁금하다면?</span>
+        <button class="cta-btn" id="reanalyze-btn">🔄 다시 분석하기</button>
       </div>
     </div>
   `;
 
-  document.getElementById("share-btn")?.addEventListener("click", () => {
-    const text = `사주 기반으로 본 내 MBTI는 ${mbti}. 나도 해보려면 여기서 확인해봐 👇`;
-    if (navigator.share) {
-      navigator.share({ title: `내 사주 MBTI: ${mbti}`, text, url: location.href }).catch(() => {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(`${text} ${location.href}`)
-        .then(() => alert("링크가 복사됐어요."));
-    }
+  document.getElementById("next-love")?.addEventListener("click", () => {
+    document.getElementById("personality-section")?.scrollIntoView({ behavior: "smooth" });
+  });
+
+  document.getElementById("next-relation")?.addEventListener("click", () => {
+    document.getElementById("interpretation")?.scrollIntoView({ behavior: "smooth" });
   });
 
   document.getElementById("reanalyze-btn")?.addEventListener("click", () => {
