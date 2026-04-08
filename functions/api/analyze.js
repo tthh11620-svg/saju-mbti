@@ -188,7 +188,7 @@ function getMonthPillar(year, month, day, yearCycleIdx) {
 }
 
 function getDayPillar(year, month, day) {
-  const REF_IDX = 50;
+  const REF_IDX = 54; // 2000-01-01 기준 60갑자 인덱스 (戊午=54)
   const diff = utcDaysDiff(year, month, day);
   const cycleIdx = ((REF_IDX + diff) % 60 + 60) % 60;
   return { cycleIdx, chars: cycleToChars(cycleIdx) };
