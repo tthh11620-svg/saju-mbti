@@ -842,6 +842,141 @@
     .site-footer__copy { font-size: var(--text-xs); color: var(--text-muted); opacity: .7; }
 
     /* ─────────────────────────────────────────
+       공유 카드 (결과 최상단)
+    ───────────────────────────────────────── */
+    .share-card {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      border-radius: var(--r-xl);
+      padding: var(--s8) var(--s8) var(--s6);
+      margin-bottom: var(--s6);
+      position: relative;
+      overflow: hidden;
+    }
+    .share-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 90% 10%, rgba(255,255,255,.18), transparent 55%);
+      pointer-events: none;
+    }
+    .share-card__brand {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: .1em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: var(--s6);
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+    }
+    .share-card__main {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--s5);
+      margin-bottom: var(--s5);
+    }
+    .share-card__type {
+      font-family: var(--font-display);
+      font-size: clamp(3.5rem, 14vw, 5.5rem);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 6px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .share-card__meta {
+      padding-bottom: 6px;
+    }
+    .share-card__secondary {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,.7);
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin-bottom: var(--s2);
+    }
+    .share-card__secondary strong {
+      color: rgba(255,255,255,.95);
+      font-family: var(--font-display);
+      letter-spacing: 2px;
+    }
+    .share-card__label {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,.6);
+      letter-spacing: .04em;
+    }
+    .share-card__summary {
+      font-size: var(--text-sm);
+      color: rgba(255,255,255,.92);
+      line-height: 1.75;
+      margin-bottom: var(--s5);
+      padding: var(--s4) var(--s5);
+      background: rgba(255,255,255,.12);
+      border-radius: var(--r-md);
+      border-left: 3px solid rgba(255,255,255,.4);
+    }
+    .share-card__axes {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s2);
+      margin-bottom: var(--s6);
+    }
+    .share-card__axis {
+      background: rgba(255,255,255,.14);
+      border-radius: var(--r-sm);
+      padding: var(--s2) var(--s2);
+      text-align: center;
+    }
+    .share-card__axis-key {
+      font-size: var(--text-xs);
+      color: rgba(255,255,255,.6);
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin-bottom: 2px;
+    }
+    .share-card__axis-result {
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .share-card__axis-label {
+      font-size: 10px;
+      color: rgba(255,255,255,.55);
+      margin-top: 2px;
+    }
+    .share-card__actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s3);
+    }
+    .share-card__btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s2);
+      padding: 12px var(--s4);
+      border-radius: var(--r-md);
+      font-size: var(--text-sm);
+      font-family: var(--font-ui);
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .share-card__btn:hover { opacity: .9; }
+    .share-card__btn:active { transform: scale(.97); }
+    .share-card__btn--save {
+      background: rgba(255,255,255,.22);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,.35);
+    }
+    .share-card__btn--share {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    /* ─────────────────────────────────────────
        시간 입력 토글 (정확 모드)
     ───────────────────────────────────────── */
     .time-toggle-btn {
@@ -1147,16 +1282,27 @@
     <!-- ── 결과 섹션: MBTI 먼저, 사주는 보조 ── -->
     <div id="result-section">
 
-      <!-- 1. MBTI 결과 (최상단, 임팩트) -->
-      <div class="card">
-        <div class="section-eyebrow">🎯 내 타고난 MBTI</div>
-        <div class="mbti-hero">
-          <div id="mbti-badge">-</div>
-          <div class="mbti-hero-desc" id="mbti-hero-desc">
-            <strong>사주로 읽은 나의 유형</strong>
-            태어난 기운이 말해주는 타고난 성향이에요.
+      <!-- 1. 공유 카드 (캡처용 + 공유 버튼) -->
+      <div class="share-card" id="share-card">
+        <div class="share-card__brand">🔮 사주MBTI &nbsp;·&nbsp; saju-mbti.pages.dev</div>
+        <div class="share-card__main">
+          <div class="share-card__type" id="share-type">----</div>
+          <div class="share-card__meta">
+            <div class="share-card__secondary" id="share-secondary"></div>
+            <div class="share-card__label">타고난 MBTI 기질</div>
           </div>
         </div>
+        <div class="share-card__summary" id="share-summary">분석 중…</div>
+        <div class="share-card__axes" id="share-axes"></div>
+        <div class="share-card__actions">
+          <button class="share-card__btn share-card__btn--save" id="save-img-btn">📸 이미지로 저장</button>
+          <button class="share-card__btn share-card__btn--share" id="share-result-btn">🔗 친구에게 공유</button>
+        </div>
+      </div>
+
+      <!-- 2. 축별 카드 (상세) -->
+      <div class="card">
+        <div class="section-eyebrow">📊 4가지 축 상세 분석</div>
         <div class="axis-cards" id="axis-cards"></div>
       </div>
 
@@ -1319,6 +1465,7 @@
 
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
   <script type="module" src="./app.js"></script>
   <script>
     const toggle = document.getElementById("theme-toggle");

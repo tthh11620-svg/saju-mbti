@@ -120,6 +120,7 @@ function renderResult(data) {
   resultSection.style.display = "block";
   resultSection.scrollIntoView({ behavior: "smooth" });
 
+  renderShareCard(data);
   renderMbtiResult(data);
   renderPersonalityCards(data);
   renderInterpretationBlocks(data);
@@ -127,18 +128,77 @@ function renderResult(data) {
   renderSajuDetails(data);
 }
 
-function renderMbtiResult(data) {
-  const mbti = data.mbti?.type || "----";
+// ── 0. 공유 카드 ─────────────────────────────
+function renderShareCard(data) {
+  const mbti      = data.mbti?.type      || "----";
   const secondary = data.mbti?.secondary || "";
+  const summary   = data.interpretation_blocks?.summary || "";
   const confidence = data.mbti?.confidence || {};
-  const summary = data.interpretation_blocks?.summary || "사주 구조를 바탕으로 MBTI 경향을 분석한 결과입니다.";
 
-  document.getElementById("mbti-badge").textContent = mbti;
-  document.getElementById("mbti-hero-desc").innerHTML = `
-    <strong>추정 유형: ${mbti}</strong>
-    ${secondary ? `<div class="mbti-hero__secondary">보조 후보 <strong>${escapeHtml(secondary)}</strong></div>` : ""}
-    <div class="mbti-hero__sub">${escapeHtml(summary)}</div>
-  `;
+  document.getElementById("share-type").textContent = mbti;
+
+  document.getElementById("share-secondary").innerHTML = secondary
+    ? `인접 유형 <strong>${escapeHtml(secondary)}</strong>`
+    : "";
+
+  document.getElementById("share-summary").textContent = summary;
+
+  // 축 요약 4개
+  const axesContainer = document.getElementById("share-axes");
+  axesContainer.innerHTML = "";
+  const axisNames = { E:"외향",I:"내향",N:"직관",S:"감각",T:"사고",F:"감정",J:"판단",P:"인식" };
+  const axisKeys = ["E/I","N/S","T/F","J/P"];
+  for (const key of axisKeys) {
+    const info = confidence[key];
+    if (!info) continue;
+    const labelShort = { balanced:"비슷", close:"근소", lean:"우세", clear:"뚜렷" };
+    axesContainer.insertAdjacentHTML("beforeend", `
+      <div class="share-card__axis">
+        <div class="share-card__axis-key">${key}</div>
+        <div class="share-card__axis-result">${escapeHtml(info.result)}</div>
+        <div class="share-card__axis-label">${axisNames[info.result] || ""} · ${labelShort[info.label] || ""}</div>
+      </div>
+    `);
+  }
+
+  // 이미지 저장
+  document.getElementById("save-img-btn").onclick = async () => {
+    const btn = document.getElementById("save-img-btn");
+    btn.textContent = "저장 중…";
+    btn.disabled = true;
+    try {
+      const canvas = await html2canvas(document.getElementById("share-card"), {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        ignoreElements: el => el.id === "save-img-btn" || el.id === "share-result-btn",
+      });
+      const link = document.createElement("a");
+      link.download = `사주MBTI_${mbti}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch {
+      alert("이미지 저장에 실패했어요. 스크린샷을 이용해주세요 😊");
+    } finally {
+      btn.textContent = "📸 이미지로 저장";
+      btn.disabled = false;
+    }
+  };
+
+  // 공유
+  document.getElementById("share-result-btn").onclick = () => {
+    const text = `사주로 본 내 타고난 MBTI는 ${mbti}${secondary ? ` (인접: ${secondary})` : ""}! 나도 해봐 👇`;
+    if (navigator.share) {
+      navigator.share({ title: `사주 MBTI: ${mbti}`, text, url: location.href }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(`${text} ${location.href}`)
+        .then(() => alert("링크가 복사됐어요 😊"));
+    }
+  };
+}
+
+function renderMbtiResult(data) {
+  const confidence = data.mbti?.confidence || {};
 
   const container = document.getElementById("axis-cards");
   container.innerHTML = "";
