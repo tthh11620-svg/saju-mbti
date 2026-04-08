@@ -86,6 +86,29 @@ form.addEventListener("submit", async (e) => {
 
     const data = await res.json();
 
+    // ── 일간 검증 로그 ─────────────────────────────────────
+    // 일간(day master)은 반드시 일주의 천간(첫 글자)이어야 함
+    const pillarDayMaster = data.pillars?.['일주']?.[0] ?? null;
+    console.group('[사주MBTI] 사주 원국 검증');
+    console.table({
+      '년주': data.pillars?.['년주'],
+      '월주': data.pillars?.['월주'],
+      '일주': data.pillars?.['일주'],
+      '시주': data.pillars?.['시주'],
+    });
+    console.log('API day_master       :', data.day_master);
+    console.log('일주[0] 추출 일간    :', pillarDayMaster);
+    console.log('일치 여부            :', data.day_master === pillarDayMaster ? '✅ 일치' : '❌ 불일치 — 일주 추출값으로 교정');
+    console.log('eight_chars          :', data.eight_chars);
+    console.groupEnd();
+
+    // 불일치 시 일주 첫 글자를 일간으로 교정
+    if (pillarDayMaster && data.day_master !== pillarDayMaster) {
+      console.warn('[사주MBTI] day_master 교정:', data.day_master, '→', pillarDayMaster);
+      data.day_master = pillarDayMaster;
+    }
+    // ───────────────────────────────────────────────────────
+
     // 1) 결과를 먼저 그린다
     try {
       renderResult(data);

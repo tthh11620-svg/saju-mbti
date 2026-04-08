@@ -1032,14 +1032,30 @@ export async function onRequestPost(context) {
 
   try {
     const eightChars = dateToEightChars(year, month, day, hour);
+
+    // ── 일간 교차 검증 ──────────────────────────────────────
+    // eightChars = [yearGan, yearJi, monthGan, monthJi, dayGan, dayJi, hourGan, hourJi]
+    // 일간은 반드시 index 4 (dayGan)
+    const [yearGanChk, , monthGanChk, , dayGanChk] = eightChars;
+    console.log('[analyze] eight_chars:', eightChars.join(' '));
+    console.log('[analyze] yearGan:', yearGanChk, '/ monthGan:', monthGanChk, '/ dayGan(일간):', dayGanChk);
+    // ───────────────────────────────────────────────────────
+
     const computed = computeSaju(eightChars);
+
+    // 이중 검증: computeSaju가 반환한 일간이 eightChars[4]와 동일한지 확인
+    if (computed['일간'] !== eightChars[4]) {
+      console.error('[analyze] 일간 불일치!', 'computed:', computed['일간'], 'eightChars[4]:', eightChars[4]);
+      computed['일간'] = eightChars[4]; // 강제 교정
+    }
+
     const built = buildResponseData(computed);
 
     return new Response(JSON.stringify({
       success: true,
       eight_chars: eightChars,
       pillars: computed['사주_원국'],
-      day_master: computed['일간'],
+      day_master: eightChars[4],   // 일주 천간을 직접 사용 (이중 안전망)
       day_master_label: DAY_MASTER_LABEL[computed['일간']],
       five_elements: computed['오행_기본분포'],
       five_elements_status: computed['오행_분석'],
