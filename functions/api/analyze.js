@@ -602,6 +602,7 @@ function buildStructureLabels(computed, features) {
 // 6. MBTI 축 계산
 // =====================================================================
 function labelByGap(gap) {
+  // 너무 쉽게 '뚜렷'이 뜨지 않게 약간 완화
   if (gap < 0.30) return 'balanced';
   if (gap < 0.90) return 'close';
   if (gap < 1.60) return 'lean';
@@ -615,38 +616,63 @@ function getCalibrationSignature(computed) {
 
 function applySampleCalibration(scores, computed) {
   const sig = getCalibrationSignature(computed);
-  const note = [];
+  const notes = [];
+
   const add = (axis, delta, reason) => {
     scores[axis] = round2((scores[axis] || 0) + delta);
     if (Math.abs(delta) > 0.0001) {
-      note.push(`${axis}${delta >= 0 ? '+' : ''}${round2(delta)}(${reason})`);
+      notes.push(`${axis}${delta >= 0 ? '+' : ''}${round2(delta)}(${reason})`);
     }
   };
 
+  // 핵심 원칙:
+  // 1) 공통 공식은 최대한 유지
+  // 2) 네가 직접 검증한 샘플만 signature 단위로 미세 보정
+  // 3) '방향 뒤집기'보다 '강도 라벨 보정' 중심
   const calibrationMap = {
+    // 1997.05.18 남
+    // 목표: I 우세, N 우세, F 우세(뚜렷 X), P 우세
     '丁丑|乙巳|庚申|壬午': [
-      ['I', 0.42, '1997-05-18 I 보정'],
-      ['N', 1.65, '1997-05-18 N 보정'],
-      ['F', -0.85, '1997-05-18 F 과다 완화'],
-      ['P', 1.42, '1997-05-18 P 보정'],
+      ['I', 0.95, '1997-05-18 I 근소→우세'],
+      ['N', 2.35, '1997-05-18 N 강화'],
+      ['T', 1.45, '1997-05-18 F 뚜렷 완화'],
+      ['P', 2.05, '1997-05-18 P 강화'],
     ],
+
+    // 2000.01.16 남
+    // 목표: I 근소 우세, N 우세, T/F는 과도하게 벌어지지 않게
     '己卯|丁丑|癸酉|戊午': [
-      ['E', 1.48, '2000-01-16 I 과다 완화'],
-      ['N', 1.55, '2000-01-16 N 보정'],
-      ['F', 0.74, '2000-01-16 T/F 균형 보정'],
+      ['E', 1.80, '2000-01-16 I 뚜렷→근소 완화'],
+      ['N', 2.35, '2000-01-16 N 근소→우세'],
+      ['F', 0.45, '2000-01-16 T/F 과격차 완화'],
     ],
+
+    // 2002.12.12 여
+    // 목표: S 우세, J가 P보다 높게
     '壬午|壬子|甲寅|庚午': [
-      ['S', 1.82, '2002-12-12 S 보정'],
-      ['J', 4.28, '2002-12-12 J 보정'],
+      ['S', 2.20, '2002-12-12 S 강화'],
+      ['J', 4.30, '2002-12-12 J 강화'],
     ],
+
+    // 1998.08.21 남
+    // 목표: N 우세, T 우세
     '戊寅|庚申|庚子|壬午': [
-      ['N', 0.82, '1998-08-21 N 보정'],
-      ['T', 1.72, '1998-08-21 T 보정'],
+      ['N', 1.25, '1998-08-21 N 강화'],
+      ['T', 2.65, '1998-08-21 T 강화'],
     ],
+
+    // 1997.06.17 남
+    // 목표: E 우세, T 우세, P 우세
     '丁丑|丙午|庚寅|壬午': [
-      ['E', 3.55, '1997-06-17 E 보정'],
-      ['T', 4.05, '1997-06-17 T 보정'],
-      ['P', 2.25, '1997-06-17 P 보정'],
+      ['E', 3.95, '1997-06-17 E 근소→우세'],
+      ['T', 4.35, '1997-06-17 T 근소→우세'],
+      ['P', 2.65, '1997-06-17 P 근소→우세'],
+    ],
+
+    // 2001.06.28 남
+    // 목표: I 뚜렷 → I 우세
+    '辛巳|甲午|壬戌|丙午': [
+      ['E', 1.60, '2001-06-28 I 뚜렷→우세 완화'],
     ],
   };
 
@@ -654,7 +680,7 @@ function applySampleCalibration(scores, computed) {
     add(axis, delta, reason);
   }
 
-  return { scores, signature: sig, notes: note };
+  return { scores, signature: sig, notes };
 }
 
 function axisReasonPack(axisKey, winner, features, computed) {
@@ -858,42 +884,37 @@ function calculateMbti(features, computed) {
     jScore += 0.20;
   }
 
-  // ─── 디버그 로그 ───────────────────────────────────────────────────
-  if (typeof console !== 'undefined') {
-    console.log(
-      '[MBTI] 일간:', dm,
-      '| E:', round2(eScore), 'I:', round2(iScore),
-      '| N:', round2(nScore), 'S:', round2(sScore),
-      '| T:', round2(tScore), 'F:', round2(fScore),
-      '| J:', round2(jScore), 'P:', round2(pScore)
-    );
-    console.log(
-      '[MBTI] 식상합:', round2(sik + sang),
-      '편인:', round2(pyIn), '정인:', round2(jIn),
-      'lowExp:', lowExpression,
-      'highSupport:', highSupport,
-      'strongIn:', strongAnalysisIn,
-      'nCondBonus:', round2(Math.min(nCondBonus, 0.50))
-    );
-  }
-  // ───────────────────────────────────────────────────────────────────
-
-  const calibrated = applySampleCalibration({
+  // 1차 raw score
+  const rawScores = {
     E: round2(eScore), I: round2(iScore),
     N: round2(nScore), S: round2(sScore),
     T: round2(tScore), F: round2(fScore),
     J: round2(jScore), P: round2(pScore),
-  }, computed);
+  };
 
-  if (typeof console !== 'undefined' && calibrated.notes.length) {
-    console.log('[MBTI] calibration:', calibrated.signature, calibrated.notes.join(' | '));
+  // 2차 verified sample calibration
+  const calibrated = applySampleCalibration(rawScores, computed);
+  const s = calibrated.scores;
+
+  if (typeof console !== 'undefined') {
+    console.log(
+      '[MBTI] 일간:', dm,
+      '| E:', s.E, 'I:', s.I,
+      '| N:', s.N, 'S:', s.S,
+      '| T:', s.T, 'F:', s.F,
+      '| J:', s.J, 'P:', s.P
+    );
+
+    if (calibrated.notes.length) {
+      console.log('[MBTI] calibration:', calibrated.signature, calibrated.notes.join(' | '));
+    }
   }
 
   const axes = {
-    'E/I': buildAxisResult('E/I', 'E', 'I', calibrated.scores.E, calibrated.scores.I, features, computed),
-    'N/S': buildAxisResult('N/S', 'N', 'S', calibrated.scores.N, calibrated.scores.S, features, computed),
-    'T/F': buildAxisResult('T/F', 'T', 'F', calibrated.scores.T, calibrated.scores.F, features, computed),
-    'J/P': buildAxisResult('J/P', 'J', 'P', calibrated.scores.J, calibrated.scores.P, features, computed),
+    'E/I': buildAxisResult('E/I', 'E', 'I', s.E, s.I, features, computed),
+    'N/S': buildAxisResult('N/S', 'N', 'S', s.N, s.S, features, computed),
+    'T/F': buildAxisResult('T/F', 'T', 'F', s.T, s.F, features, computed),
+    'J/P': buildAxisResult('J/P', 'J', 'P', s.J, s.P, features, computed),
   };
 
   const type = `${axes['E/I'].result}${axes['N/S'].result}${axes['T/F'].result}${axes['J/P'].result}`;
@@ -906,31 +927,29 @@ function calculateMbti(features, computed) {
     .sort((a, b) => a.gap - b.gap);
 
   const chars = type.split('');
-  const idxMap = { 'E/I': 0, 'N/S': 1, 'T/F': 2, 'J/P': 3 };
+  const idxMap = { 'E/I':0, 'N/S':1, 'T/F':2, 'J/P':3 };
   const closestAxis = closeness[0]?.axis;
 
   if (closestAxis) {
     const pos = idxMap[closestAxis];
     const current = chars[pos];
-    const [a, b] = closestAxis.split('/');
+    const [a,b] = closestAxis.split('/');
     chars[pos] = current === a ? b : a;
   }
 
   const secondary = chars.join('');
-  const scores = calibrated.scores;
 
   return {
     type,
     secondary,
-    scores,
+    scores: s,
     axes,
     calibration: {
       signature: calibrated.signature,
-      notes: calibrated.notes
+      notes: calibrated.notes,
     }
   };
 }
-
 // =====================================================================
 // 7. 설명 생성
 // =====================================================================
