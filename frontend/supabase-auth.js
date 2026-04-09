@@ -46,8 +46,9 @@ async function signInWithProvider(provider) {
   const options = {
     redirectTo: window.location.origin + window.location.pathname,
   };
-  // Kakao: 기본 scope(account_email, profile_nickname, profile_image) 제거 → KOE205 방지
-  if (provider === 'kakao') options.scopes = '';
+  // Kakao: 카카오 콘솔에서 설정된 동의항목(profile_nickname)만 명시적으로 지정.
+  // scopes를 비워두면 GoTrue가 기본값(account_email, profile_image)을 추가해 KOE205 발생.
+  if (provider === 'kakao') options.scopes = 'profile_nickname';
 
   const { error } = await supabase.auth.signInWithOAuth({ provider, options });
   if (error) {
