@@ -50,12 +50,13 @@ async function signInWithProvider(provider) {
   // 빈 문자열로 덮어써서 KOE205 에러 방지. 카카오 콘솔 동의항목과 맞출 것.
   if (provider === 'kakao') options.scopes = '';
 
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options });
-  if (error) {
-    console.error(`[Supabase] ${provider} 로그인 오류:`, error.message);
-    alert('로그인 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.');
-  }
-}
+  const { data, error } = await supabase.auth.signInWithOAuth({
+  provider: 'kakao',
+  options: {
+    scopes: 'profile_nickname',
+    redirectTo: `${window.location.origin}/auth/callback`, // 콜백 경로는 본인 프로젝트에 맞게
+  },
+})
 
 // ─── 로그아웃 ───
 async function signOut() {
