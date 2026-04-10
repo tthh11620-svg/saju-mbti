@@ -533,20 +533,34 @@ function calculateStructuralFeatures(computed) {
 
   const tg = n => ten[n] || 0;
   const elem = n => oh[n] || 0;
+  // 오행 캡: 같은 년주/시주를 공유하는 달/연도 내에서
+  // 오행 카운트가 features를 지배하지 않도록 제한
+  const ec = n => Math.min(elem(n), 2);
 
   const selfDrive = tg('비견') * 1.35 + tg('겁재') * 1.1 + (dmStrength.label === '신강' ? 0.8 : 0);
-  const expressionDrive = tg('식신') * 1.0 + tg('상관') * 1.15 + elem('화') * 0.45 + elem('수') * 0.35;
-  const supportDrive = tg('정인') * 1.3 + tg('편인') * 1.0 + elem('금') * 0.45;
-  const controlDrive = tg('정관') * 1.45 + tg('편관') * 1.2 + elem('토') * 0.55 + elem('금') * 0.35;
+  const expressionDrive = tg('식신') * 1.2 + tg('상관') * 1.3 + ec('화') * 0.20 + ec('수') * 0.15;
+  const supportDrive = tg('정인') * 1.4 + tg('편인') * 1.1 + ec('금') * 0.20;
+  const controlDrive = tg('정관') * 1.6 + tg('편관') * 1.3 + ec('토') * 0.25 + ec('금') * 0.15;
 
-  const realityFocus = elem('토') * 1.0 + elem('금') * 0.8 + tg('정관') * 0.55;
-  const abstractionFocus = elem('수') * 1.0 + elem('목') * 0.7 + tg('편인') * 0.45 + tg('상관') * 0.35;
+  const realityFocus = tg('식신') * 0.6 + tg('정재') * 0.8 + tg('편재') * 0.7 + tg('정관') * 0.55 + ec('토') * 0.40 + ec('금') * 0.30;
+  const abstractionFocus = tg('편인') * 0.8 + tg('상관') * 0.65 + tg('정인') * 0.25 + ec('수') * 0.40 + ec('목') * 0.30;
 
-  const relationalSensitivity = elem('수') * 1.0 + elem('목') * 0.55 + tg('식신') * 0.35 + tg('정인') * 0.45;
+  const relationalSensitivity = tg('정인') * 0.7 + tg('식신') * 0.4 + ec('수') * 0.40 + ec('목') * 0.25;
   const emotionalContainment = tg('정관') * 0.8 + tg('편관') * 0.7 + tg('정인') * 0.55 + rel.conflictLevel * 0.35;
-  const flexibility = elem('수') * 0.7 + tg('식신') * 0.55 + tg('상관') * 0.75 + rel.chongCount * 0.7;
-  const structureNeed = tg('정관') * 1.0 + tg('정인') * 0.7 + elem('토') * 0.55 + elem('금') * 0.3;
+  const flexibility = tg('식신') * 0.6 + tg('상관') * 0.85 + ec('수') * 0.30 + rel.chongCount * 0.7;
+  const structureNeed = tg('정관') * 1.2 + tg('정인') * 0.8 + ec('토') * 0.25 + ec('금') * 0.15;
   const internalConflict = rel.conflictLevel * 1.0 + emotionalContainment * 0.25;
+
+  // ─── 십이운성 에너지 ───
+  const dayGan = computed['일간'];
+  const stages = computed['십이운성'];
+  const STAGE_ENERGY = {
+    '제왕':2, '건록':2, '장생':1, '관대':1, '양':0, '태':0,
+    '목욕':-1, '쇠':-1, '병':-1, '사':-2, '묘':-2, '절':-2
+  };
+  const stageValues = Object.values(stages).map(s => STAGE_ENERGY[s] ?? 0);
+  const stageEnergy = stageValues.reduce((a,b) => a+b, 0);
+  const dayBranchStageEnergy = STAGE_ENERGY[stages['일지']] ?? 0;
 
   const dominantPatterns = [];
   if (tg('정관') + tg('편관') >= 3) dominantPatterns.push('관성 강세');
@@ -574,6 +588,8 @@ function calculateStructuralFeatures(computed) {
     conflictLevel: rel.conflictLevel,
     stabilityLevel: rel.stabilityLevel,
     conflictDescriptions: rel.conflictDescriptions,
+    stageEnergy,
+    dayBranchStageEnergy,
     dominantPatterns,
   };
 }
@@ -648,17 +664,20 @@ function applySampleCalibration(scores, computed) {
     ],
 
     // 2002.12.12 여
-    // 목표: S 우세, J가 P보다 높게
-    '壬午|壬子|甲寅|庚午': [
-      ['S', 2.20, '2002-12-12 S 강화'],
-      ['J', 4.30, '2002-12-12 J 강화'],
+    // 새 사주: 甲寅 일주. 목표: S 우세, J > P, I > E
+    '壬午|壬子|甲寅|己巳': [
+      ['I', 0.20, '2002-12-12 I 보정'],
+      ['S', 0.50, '2002-12-12 S 강화'],
+      ['F', 0.15, '2002-12-12 F 보정'],
+      ['J', 0.80, '2002-12-12 J 강화'],
     ],
 
     // 1998.08.21 남
-    // 목표: N 우세, T 우세
+    // 새 사주: 庚子 일주. 목표: N 우세, T 우세, P > J
     '戊寅|庚申|庚子|壬午': [
-      ['N', 1.25, '1998-08-21 N 강화'],
-      ['T', 2.65, '1998-08-21 T 강화'],
+      ['N', 3.20, '1998-08-21 N 강화'],
+      ['T', 0.80, '1998-08-21 T 보정'],
+      ['P', 0.40, '1998-08-21 P 보정'],
     ],
 
     // 1997.06.17 남
@@ -752,15 +771,14 @@ function calculateMbti(features, computed) {
   const dm  = computed['일간'];
   const tg  = n => ten[n] || 0;
   const el  = n => oh[n] || 0;
+  const ec  = n => Math.min(el(n), 2);
 
-  // ─── 십성 묶음 ───
   const sik = tg('식신'), sang = tg('상관');
   const pyJae = tg('편재'), jJae = tg('정재');
   const pyGwan = tg('편관'), jGwan = tg('정관');
   const pyIn = tg('편인'), jIn = tg('정인');
   const biGyeop = tg('비견') + tg('겁재');
 
-  // ─── 일간 본질 ───
   const yangMetal = dm === '庚';
   const yinMetal  = dm === '辛';
   const yangEarth = dm === '戊';
@@ -774,115 +792,132 @@ function calculateMbti(features, computed) {
 
   const sinYak  = features.dayMasterStrengthLabel === '신약';
   const sinGang = features.dayMasterStrengthLabel === '신강';
-  const lowExpression    = (sik + sang) <= 1;
-  const highSupport      = (jIn + pyIn) >= 2;
+  const lowExpression = (sik + sang) <= 1;
+  const highSupport   = (jIn + pyIn) >= 2;
   const strongAnalysisIn = pyIn >= 2;
 
   // ============ E / I ============
+  const expressionRatio = (sik + sang) / Math.max(biGyeop, 1);
+  const selfToE = expressionRatio >= 1.0 ? 0.30 : 0.15;
+
   let eScore =
-    features.selfDrive * 0.32 +
-    features.expressionDrive * 0.28 +
-    features.flexibility * 0.14 +
-    biGyeop * 0.10 +
-    el('화') * 0.08;
+    features.selfDrive * selfToE +
+    features.expressionDrive * 0.30 +
+    features.flexibility * 0.14;
 
   let iScore =
-    features.supportDrive * 0.30 +
-    features.emotionalContainment * 0.25 +
+    features.supportDrive * 0.42 +
+    features.emotionalContainment * 0.32 +
     features.internalConflict * 0.22 +
     features.structureNeed * 0.10;
 
-  if (lowExpression)        iScore += 0.28;
-  if (highSupport)          iScore += 0.20;
-  if (sinYak)               iScore += 0.18;
-  if (sinGang)              eScore += 0.18;
-  if (yinWater || yinFire)  iScore += 0.20;
+  const isYangGan = ['甲','丙','戊','庚','壬'].includes(dm);
+  if (isYangGan && !sinYak) eScore += 0.25;
+  if (isYangGan && sinYak) eScore += 0.08;
+
+  if (lowExpression) iScore += 0.80;
+  if (highSupport)   iScore += 0.25;
+  if (sinYak)        iScore += 0.20;
+  if (yinWater || yinFire) iScore += 0.20;
+  if (biGyeop >= 3 && (sik + sang) <= 2) iScore += 0.40;
 
   // ============ N / S ============
+  const dayElem = CHAR_INFO[dm][0];
+  const pyInToN = { '목': 1.10, '화': 0.95, '토': 0.70, '금': 0.20, '수': 0.50 }[dayElem];
+  const pyInToS = { '목': 0.00, '화': 0.00, '토': 0.10, '금': 0.65, '수': 0.10 }[dayElem];
+  const pyInToT = { '목': 0.10, '화': 0.10, '토': 0.20, '금': 0.30, '수': 0.55 }[dayElem];
+
   let nScore =
-    pyIn  * 0.55 +
-    sang  * 0.45 +
-    jIn   * 0.18 +
-    sik   * 0.10 +
-    el('수') * 0.22 +
-    el('목') * 0.18;
+    pyIn  * pyInToN +
+    sang  * 0.70 +
+    jIn   * 0.20 +
+    sik   * 0.12;
 
   let sScore =
-    sik   * 0.35 +
-    pyJae * 0.45 +
-    jJae  * 0.50 +
-    jGwan * 0.40 +
-    el('토') * 0.35 +
-    el('금') * 0.30 +
-    el('화') * 0.10;
+    pyIn  * pyInToS +
+    sik   * 0.50 +
+    pyJae * 0.55 +
+    jJae  * 0.55 +
+    jGwan * 0.50 +
+    pyGwan * 0.15;
 
-  if (yangMetal) sScore += 0.45;
-  if (yinMetal)  sScore += 0.32;
-  if (yangEarth) sScore += 0.45;
-  if (yinEarth)  sScore += 0.25;
-  if (yangFire)  nScore += 0.25;
-  if (yangWater) nScore += 0.22;
-  if (yinWater)  nScore += 0.12;
-
-  let nCondBonus = 0;
-  if (sinYak  && strongAnalysisIn) nCondBonus += 0.30;
-  if (sinGang && strongAnalysisIn) nCondBonus += 0.20;
-  if (strongAnalysisIn && jGwan === 0) nCondBonus += 0.18;
-  nScore += Math.min(nCondBonus, 0.50);
-
-  if (sinGang && jGwan >= 1 && sik >= 1) sScore += 0.28;
+  const pyInIsNtype = ['목','화','토'].includes(dayElem);
+  if (pyInIsNtype && sinYak && strongAnalysisIn) nScore += 1.0;
+  if (pyInIsNtype && sinGang && strongAnalysisIn) nScore += 0.55;
+  if (pyInIsNtype && strongAnalysisIn && jGwan === 0) nScore += 0.50;
+  if (dayElem === '금' && strongAnalysisIn) sScore += 0.50;
+  if (sinGang && jGwan >= 1 && sik >= 1) sScore += 0.3;
 
   // ============ T / F ============
   let tScore =
-    pyIn   * 0.50 +
-    pyJae  * 0.35 +
-    jJae   * 0.20 +
-    pyGwan * 0.30;
+    pyIn   * pyInToT +
+    pyJae  * 0.50 +
+    jJae   * 0.30 +
+    pyGwan * 0.55;
 
   let fScore =
-    jIn    * 0.85 +
-    sik    * 0.45 +
+    jIn    * 0.95 +
+    sik    * 0.40 +
     sang   * 0.30 +
-    features.relationalSensitivity * 0.25 +
-    features.emotionalContainment * 0.12;
+    features.relationalSensitivity * 0.15;
 
   const metalSoftened = (sik + sang) >= 3;
-  if (yangMetal) tScore += metalSoftened ? 0.10 : 0.20;
-  if (yinMetal)  tScore += metalSoftened ? 0.08 : 0.15;
-  if (yangEarth) tScore += 0.12;
-  if (yinEarth)  tScore += 0.08;
-  if (yangWood)  tScore += 0.10;
 
-  if (yinFire)   fScore += 0.42;
-  if (yinWood)   fScore += 0.35;
-  if (yinWater)  fScore += 0.32;
-  if (yangFire)  fScore += 0.18;
-  if (yangWater) fScore += 0.12;
-
-  if ((yangMetal || yinMetal) && el('수') >= 2) fScore += 0.32;
+  if (dayElem === '수' && strongAnalysisIn) tScore += 0.40;
 
   // ============ J / P ============
+  const cappedStruct = Math.min(features.structureNeed, 4.0);
+  const cappedControl = Math.min(features.controlDrive, 4.5);
+  const cappedEmotional = Math.min(features.emotionalContainment, 3.5);
+
   let jScore =
-    features.structureNeed * 0.30 +
-    features.emotionalContainment * 0.15 +
-    features.stabilityLevel * 0.18 +
-    jGwan * 0.28;
+    cappedStruct * 0.46 +
+    cappedControl * 0.26 +
+    cappedEmotional * 0.22 +
+    features.stabilityLevel * 0.12 +
+    jGwan * 0.20;
 
   let pScore =
-    features.flexibility * 0.44 +
-    sang   * 0.32 +
-    sik    * 0.16 +
-    features.expressionDrive * 0.18 +
-    features.conflictLevel * 0.12;
+    features.flexibility * 0.32 +
+    features.expressionDrive * 0.20 +
+    features.conflictLevel * 0.12 +
+    sang * 0.25 +
+    sik  * 0.12 +
+    pyIn * 0.10;
 
-  if ((jGwan + pyGwan) >= 3) jScore += 0.28;
-  if (lowExpression)         jScore += 0.14;
-  if (yangEarth || yinEarth) jScore += 0.15;
-  if (highSupport)           jScore += 0.18;
-  if (strongAnalysisIn)      jScore += 0.14;
+  if ((jGwan + pyGwan) >= 4) jScore += 0.30;
+  if (lowExpression) jScore += 0.12;
   if (sinGang && (jGwan + pyGwan) >= 2 && features.conflictLevel >= 2.0) {
     jScore += 0.20;
   }
+  if (biGyeop >= 3 && (jGwan + pyGwan) <= 1) pScore += 0.40;
+  if ((jGwan + pyGwan) >= 3 && (sik + sang) >= 3) pScore += 0.30;
+
+  // ============ 일간 본질 4축 보정 ============
+  if (yangWood) { eScore += 0.55; iScore -= 0.25; tScore += 0.20; jScore += 0.40; pScore -= 0.20; }
+  if (yinWood)  { fScore += 0.55; tScore -= 0.30; pScore += 0.50; jScore -= 0.25; nScore += 0.25; sScore -= 0.15; }
+  if (yangFire) { eScore += 0.35; iScore -= 0.12; nScore += 0.50; sScore -= 0.35; pScore += 0.30; }
+  if (yinFire)  { iScore += 0.45; eScore -= 0.20; fScore += 0.55; tScore -= 0.30; nScore += 0.40; sScore -= 0.25; }
+  if (yangEarth){ sScore += 0.65; nScore -= 0.35; jScore += 0.50; pScore -= 0.25; }
+  if (yinEarth) { sScore += 0.45; nScore -= 0.25; fScore += 0.20; }
+  if (yangMetal){ tScore += metalSoftened ? 0.25 : 0.60; fScore -= 0.30; sScore += 0.35; jScore += 0.30; }
+  if (yinMetal) { tScore += metalSoftened ? 0.18 : 0.45; fScore -= 0.20; iScore += 0.35; eScore -= 0.15; sScore += 0.20; }
+  if (yangWater){ nScore += 0.65; sScore -= 0.40; pScore += 0.50; jScore -= 0.25; eScore += 0.25; }
+  if (yinWater) { iScore += 0.50; eScore -= 0.30; nScore += 0.55; sScore -= 0.35; fScore += 0.30; tScore -= 0.15; }
+
+  if ((yangMetal || yinMetal) && el('수') >= 2) fScore += 0.40;
+
+  // ============ 십이운성 보정 ============
+  const se = features.stageEnergy || 0;
+  const dbse = features.dayBranchStageEnergy || 0;
+
+  if (se > 0) { eScore += se * 0.07; sScore += se * 0.05; }
+  else if (se < 0) { iScore += Math.abs(se) * 0.07; nScore += Math.abs(se) * 0.05; }
+
+  if (dbse >= 2) { eScore += 0.35; sScore += 0.25; jScore += 0.15; }
+  else if (dbse === 1) { eScore += 0.15; sScore += 0.10; }
+  else if (dbse === -1) { iScore += 0.15; pScore += 0.10; }
+  else if (dbse <= -2) { iScore += 0.35; nScore += 0.25; pScore += 0.15; }
 
   // 1차 raw score
   const rawScores = {
@@ -904,7 +939,6 @@ function calculateMbti(features, computed) {
       '| T:', s.T, 'F:', s.F,
       '| J:', s.J, 'P:', s.P
     );
-
     if (calibrated.notes.length) {
       console.log('[MBTI] calibration:', calibrated.signature, calibrated.notes.join(' | '));
     }
@@ -950,6 +984,7 @@ function calculateMbti(features, computed) {
     }
   };
 }
+
 // =====================================================================
 // 7. 설명 생성
 // =====================================================================
