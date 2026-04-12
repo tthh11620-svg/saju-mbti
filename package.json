@@ -2,7 +2,6 @@
   "name": "saju-mbti",
   "version": "1.0.0",
   "dependencies": {
-    "기존패키지": "^1.0.0",
     "tyme4ts": "^1.4.6"
   }
 }
