@@ -3,3 +3,8 @@
     "firebase": "^12.11.0"
   }
 }
+{
+     "dependencies": {
+       "tyme4ts": "^1.4.6"
+     }
+   }
