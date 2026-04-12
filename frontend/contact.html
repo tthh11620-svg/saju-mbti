@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>문의하기 — 사주MBTI</title>
+  <meta name="description" content="사주MBTI 서비스에 대한 문의, 오류 신고, 피드백을 보내주세요." />
+  <link rel="canonical" href="https://saju-mbti.pages.dev/contact.html" />
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "w89u0ucfz8");
+  </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1XBS7BQRZ2"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1XBS7BQRZ2');
+  </script>
+  <meta name="google-adsense-account" content="ca-pub-5083321664647011">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5083321664647011" crossorigin="anonymous"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #6C63FF; --primary-dark: #4B44CC; --primary-light: #A78BFA;
+      --primary-glow: rgba(108,99,255,.15);
+      --bg: #F5F4FF; --surface-1: #FFFFFF; --surface-2: #F0EEFF;
+      --text-primary: #1C1A3A; --text-secondary: #4E4C6A; --text-muted: #9896B0;
+      --border: #E2DFFF; --border-strong: #C5C0FF;
+      --shadow-md: 0 4px 20px rgba(108,99,255,.12);
+      --r-lg: 20px; --r-md: 12px;
+      --font-display: 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+      --font-ui: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    }
+    [data-theme="dark"] {
+      --primary: #8B83FF; --primary-dark: #6C63FF; --primary-light: #B8B0FF;
+      --primary-glow: rgba(139,131,255,.18);
+      --bg: #0C0B1A; --surface-1: #161428; --surface-2: #1E1C35;
+      --text-primary: #EDE9FF; --text-secondary: #9D9AC0; --text-muted: #6B6890;
+      --border: #2A2648; --border-strong: #3D3868;
+      --shadow-md: 0 4px 20px rgba(0,0,0,.4);
+    }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg); color: var(--text-primary);
+      padding: 40px 16px 80px;
+      line-height: 1.75;
+      transition: background .3s, color .3s;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    .card {
+      background: var(--surface-1);
+      border-radius: var(--r-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-bottom: 28px;
+      color: var(--primary); text-decoration: none;
+      font-size: .875rem; font-weight: 700;
+      transition: gap .2s;
+    }
+    .back:hover { gap: 10px; }
+    .hero { text-align: center; padding: 32px 16px 24px; }
+    .hero-eyebrow {
+      font-size: .75rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--primary); margin-bottom: 10px;
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 900; color: var(--primary);
+      letter-spacing: -.02em; line-height: 1.2; margin-bottom: 10px;
+    }
+    .hero p { font-size: .9375rem; color: var(--text-muted); }
+
+    .section-eyebrow {
+      font-size: .75rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--primary);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .section-eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .contact-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .contact-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 18px 20px;
+      background: var(--surface-2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+    .contact-icon { font-size: 1.4rem; flex-shrink: 0; margin-top: 2px; }
+    .contact-label { font-size: .8125rem; color: var(--text-muted); margin-bottom: 4px; }
+    .contact-value {
+      font-size: .9375rem; font-weight: 700; color: var(--text-primary);
+      text-decoration: none;
+    }
+    .contact-value:hover { color: var(--primary); text-decoration: underline; }
+    .contact-desc { font-size: .8125rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .notice {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px 20px;
+      font-size: .875rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; z-index: 999;
+      width: 44px; height: 44px;
+      background: var(--surface-1); border: 1.5px solid var(--border);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; box-shadow: var(--shadow-md);
+      transition: background .3s, transform .15s;
+    }
+    .theme-toggle:hover { transform: scale(1.08); background: var(--surface-2); }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle">🌙</button>
+  <div class="container">
+    <a href="/" class="back">← 홈으로</a>
+
+    <div class="card hero">
+      <div class="hero-eyebrow">Contact</div>
+      <h1>📮 문의하기</h1>
+      <p>오류 신고, 개선 의견, 협업 문의 모두 환영합니다</p>
+    </div>
+
+    <div class="card">
+      <div class="section-eyebrow">연락 방법</div>
+      <ul class="contact-list">
+        <li class="contact-item">
+          <span class="contact-icon">✉️</span>
+          <div>
+            <div class="contact-label">이메일 문의</div>
+            <a class="contact-value" href="mailto:contact@saju-mbti.pages.dev">contact@saju-mbti.pages.dev</a>
+            <div class="contact-desc">오류 신고, 개인정보 관련 문의, 서비스 제안</div>
+          </div>
+        </li>
+        <li class="contact-item">
+          <span class="contact-icon">🐛</span>
+          <div>
+            <div class="contact-label">오류 신고</div>
+            <div class="contact-value">결과가 이상하거나 페이지가 안 열릴 때</div>
+            <div class="contact-desc">어떤 생년월일로 어떤 증상이 발생했는지 알려주시면 빠르게 확인합니다</div>
+          </div>
+        </li>
+        <li class="contact-item">
+          <span class="contact-icon">💡</span>
+          <div>
+            <div class="contact-label">개선 제안</div>
+            <div class="contact-value">기능 요청, UI 피드백</div>
+            <div class="contact-desc">더 좋은 서비스를 만드는 데 의견이 큰 도움이 됩니다</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="section-eyebrow">자주 묻는 질문</div>
+      <p style="font-size:.9375rem; color:var(--text-secondary); margin-bottom:12px;">
+        <strong style="color:var(--text-primary);">Q. 결과가 너무 다르게 나와요</strong><br>
+        사주 MBTI는 출생 시간을 기반으로 한 기질 분석이라 설문 기반 MBTI와 다를 수 있어요. 출생 시간이 정확할수록 더 잘 맞아요.
+      </p>
+      <p style="font-size:.9375rem; color:var(--text-secondary); margin-bottom:12px;">
+        <strong style="color:var(--text-primary);">Q. 개인정보가 저장되나요?</strong><br>
+        이름, 이메일 등 식별 정보는 수집하지 않아요. 입력한 생년월일은 분석 후 서버에 저장되지 않습니다.
+      </p>
+      <p style="font-size:.9375rem; color:var(--text-secondary); margin-bottom:0;">
+        <strong style="color:var(--text-primary);">Q. 서비스는 유료인가요?</strong><br>
+        현재 완전 무료로 제공하고 있어요.
+      </p>
+    </div>
+
+    <div class="notice">
+      📋 서비스는 재미와 자기 이해를 위한 엔터테인먼트 콘텐츠입니다. 전문 심리 상담이나 의학적 진단을 대체하지 않습니다.
+    </div>
+  </div>
+
+  <script>
+    const toggle = document.getElementById("theme-toggle");
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      toggle.textContent = "☀️";
+    }
+    toggle.addEventListener("click", () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement[isDark ? "removeAttribute" : "setAttribute"]("data-theme", "dark");
+      toggle.textContent = isDark ? "🌙" : "☀️";
+      localStorage.setItem("theme", isDark ? "light" : "dark");
+    });
+  </script>
+</body>
+</html>
