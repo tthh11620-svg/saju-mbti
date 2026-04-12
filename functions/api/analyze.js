@@ -499,8 +499,13 @@ function computeEightChars(input) {
   const yp = extractYearPillar(ec);
   const mp = extractMonthPillar(ec);
   const dp = extractDayPillar(ec, solar.hour, policy);
-  const hp = computeHourPillar(dp.stem, solar.hour);
 
+const hourDayStem =
+  policy === ZASI_POLICY.NEXT_DAY_MIDNIGHT && solar.hour === 23
+    ? ec.getDay().getHeavenStem().getName()   // raw next-day stem
+    : dp.stem;
+
+const hp = computeHourPillar(hourDayStem, solar.hour);
   const eightChars = [
     yp.stem, yp.branch,
     mp.stem, mp.branch,
