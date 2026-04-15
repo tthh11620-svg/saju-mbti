@@ -1146,39 +1146,117 @@ function extractSajuTraits(computed) {
 // narrative 호환용.
 // 핵심은 raw computed를 다시 많이 쓰지 않고 traits를 재가공해 반환하는 것.
 function calculateStructuralFeatures(computed) {
-  const traits = extractSajuTraits(computed);
+  const ten = computed['십성_요약'];
+  const oh = computed['오행_기본분포'];
+  const dmStr = dayMasterStrength(computed);
+  const rel = relationFeatures(computed);
+
+  const tg = n => ten[n] || 0;
+  const el = n => oh[n] || 0;
+
+  // 오행 영향 과대 반영 방지
+  const ec = n => Math.min(el(n), 1.5);
+
+  const SE = {
+    '제왕':2,'건록':2,'장생':1,'관대':1,
+    '양':0,'태':0,
+    '목욕':-1,'쇠':-1,'병':-1,
+    '사':-2,'묘':-2,'절':-2
+  };
+
+  const stages = computed['십이운성'];
+  const stageEnergy = Object.values(stages).map(s => SE[s] ?? 0).reduce((a,b) => a+b, 0);
+  const dayBSE = SE[stages['일지']] ?? 0;
 
   return {
-    dayMasterStrengthScore: traits.dayMasterStrengthScore,
-    dayMasterStrengthLabel: traits.dayMasterStrengthLabel,
+    dayMasterStrengthScore: dmStr.score,
+    dayMasterStrengthLabel: dmStr.label,
 
-    selfDrive: round2(traits.autonomy + traits.outwardExpression * 0.25),
-    expressionDrive: traits.outwardExpression,
-    supportDrive: round2(traits.internalProcessing + traits.relationalEmpathy * 0.25),
-    controlDrive: round2(traits.impersonalJudgment + traits.structurePreference * 0.20),
+    selfDrive: round2(
+      tg('비견') * 1.05 +
+      tg('겁재') * 0.85 +
+      (dmStr.label === '신강' ? 0.45 : 0)
+    ),
 
-    realityFocus: traits.concretePracticality,
-    abstractionFocus: traits.abstractInterpretation,
-    relationalSensitivity: traits.relationalEmpathy,
-    emotionalContainment: round2(traits.internalProcessing + traits.structurePreference * 0.20),
-    flexibility: traits.adaptiveFlexibility,
-    structureNeed: traits.structurePreference,
-    internalConflict: traits.emotionalPressure,
+    expressionDrive: round2(
+      tg('식신') * 0.90 +
+      tg('상관') * 0.95 +
+      ec('화') * 0.12 +
+      ec('수') * 0.08
+    ),
 
-    conflictLevel: traits.conflictLevel,
-    stabilityLevel: traits.stabilityLevel,
-    chongCount: traits.chongCount,
-    stageEnergy: traits.stageEnergy,
-    dayBranchStageEnergy: traits.dayBranchStageEnergy,
+    supportDrive: round2(
+      tg('정인') * 1.05 +
+      tg('편인') * 0.85 +
+      ec('금') * 0.10
+    ),
 
-    // 추가
-    traits,
+    controlDrive: round2(
+      tg('정관') * 1.10 +
+      tg('편관') * 0.90 +
+      ec('토') * 0.12 +
+      ec('금') * 0.08
+    ),
+
+    realityFocus: round2(
+      tg('식신') * 0.45 +
+      tg('정재') * 0.55 +
+      tg('편재') * 0.45 +
+      tg('정관') * 0.30 +
+      ec('토') * 0.22 +
+      ec('금') * 0.18
+    ),
+
+    abstractionFocus: round2(
+      tg('편인') * 0.65 +
+      tg('상관') * 0.45 +
+      tg('정인') * 0.18 +
+      ec('수') * 0.24 +
+      ec('목') * 0.18
+    ),
+
+    relationalSensitivity: round2(
+      tg('정인') * 0.85 +
+      tg('식신') * 0.25 +
+      ec('수') * 0.18 +
+      ec('목') * 0.15
+    ),
+
+    emotionalContainment: round2(
+      tg('정관') * 0.45 +
+      tg('편관') * 0.40 +
+      tg('정인') * 0.30 +
+      rel.conflictLevel * 0.20
+    ),
+
+    flexibility: round2(
+      tg('식신') * 0.35 +
+      tg('상관') * 0.55 +
+      ec('수') * 0.18 +
+      rel.chongCount * 0.35
+    ),
+
+    structureNeed: round2(
+      tg('정관') * 0.80 +
+      tg('정인') * 0.55 +
+      ec('토') * 0.15 +
+      ec('금') * 0.10
+    ),
+
+    internalConflict: round2(
+      rel.conflictLevel +
+      (tg('정관') * 0.35 + tg('편관') * 0.30 + tg('정인') * 0.20) * 0.20
+    ),
+
+    conflictLevel: rel.conflictLevel,
+    stabilityLevel: rel.stabilityLevel,
+    chongCount: rel.chongCount,
+    stageEnergy,
+    dayBranchStageEnergy: dayBSE,
   };
 }
 
 function calculateMbti(features, computed) {
-  const traits = features?.traits || extractSajuTraits(computed);
-
   const eC = makeCollector(), iC = makeCollector();
   const nC = makeCollector(), sC = makeCollector();
   const tC = makeCollector(), fC = makeCollector();
@@ -1187,42 +1265,34 @@ function calculateMbti(features, computed) {
   let eS = 0, iS = 0, nS = 0, sS = 0, tS = 0, fS = 0, jS = 0, pS = 0;
 
   // E / I
-  eS += eC.add('trait: outwardExpression', traits.outwardExpression * 1.15, 'E');
-  eS += eC.add('trait: autonomy', traits.autonomy * 0.30, 'E');
-  eS += eC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 0.10, 'E');
+  eS += eC.add('표현성', features.expressionDrive * 0.95, 'E');
+  eS += eC.add('자기추진', features.selfDrive * 0.18, 'E');
 
-  iS += iC.add('trait: internalProcessing', traits.internalProcessing * 1.15, 'I');
-  iS += iC.add('trait: emotionalPressure', traits.emotionalPressure * 0.18, 'I');
-  iS += iC.add('trait: relationalEmpathy', traits.relationalEmpathy * 0.08, 'I');
+  iS += iC.add('내면축적', features.supportDrive * 0.92, 'I');
+  iS += iC.add('내적정리', features.emotionalContainment * 0.18, 'I');
 
   // N / S
-  nS += nC.add('trait: abstractInterpretation', traits.abstractInterpretation * 1.20, 'N');
-  nS += nC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 0.12, 'N');
-  nS += nC.add('trait: internalProcessing', traits.internalProcessing * 0.08, 'N');
+  nS += nC.add('추상해석', features.abstractionFocus * 1.05, 'N');
+  nS += nC.add('내적갈등', features.internalConflict * 0.06, 'N');
 
-  sS += sC.add('trait: concretePracticality', traits.concretePracticality * 1.20, 'S');
-  sS += sC.add('trait: structurePreference', traits.structurePreference * 0.10, 'S');
-  sS += sC.add('trait: outwardExpression', traits.outwardExpression * 0.05, 'S');
+  sS += sC.add('현실집중', features.realityFocus * 1.00, 'S');
+  sS += sC.add('구조선호', features.structureNeed * 0.12, 'S');
 
   // T / F
-  tS += tC.add('trait: impersonalJudgment', traits.impersonalJudgment * 1.20, 'T');
-  tS += tC.add('trait: autonomy', traits.autonomy * 0.12, 'T');
-  tS += tC.add('trait: structurePreference', traits.structurePreference * 0.08, 'T');
+  tS += tC.add('기준성', features.controlDrive * 0.92, 'T');
+  tS += tC.add('자기기준', features.selfDrive * 0.14, 'T');
 
-  fS += fC.add('trait: relationalEmpathy', traits.relationalEmpathy * 1.20, 'F');
-  fS += fC.add('trait: internalProcessing', traits.internalProcessing * 0.10, 'F');
-  fS += fC.add('trait: outwardExpression', traits.outwardExpression * 0.06, 'F');
+  fS += fC.add('관계민감', features.relationalSensitivity * 1.00, 'F');
+  fS += fC.add('수용성', features.supportDrive * 0.14, 'F');
 
   // J / P
-  jS += jC.add('trait: structurePreference', traits.structurePreference * 1.20, 'J');
-  jS += jC.add('trait: concretePracticality', traits.concretePracticality * 0.10, 'J');
-  jS += jC.add('trait: stabilityLevel', traits.stabilityLevel * 0.08, 'J');
+  jS += jC.add('정리욕구', features.structureNeed * 1.00, 'J');
+  jS += jC.add('안정성', features.stabilityLevel * 0.10, 'J');
 
-  pS += pC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 1.20, 'P');
-  pS += pC.add('trait: outwardExpression', traits.outwardExpression * 0.08, 'P');
-  pS += pC.add('trait: conflictLevel', traits.conflictLevel * 0.06, 'P');
+  pS += pC.add('유동성', features.flexibility * 1.00, 'P');
+  pS += pC.add('변동성', features.conflictLevel * 0.08, 'P');
 
-  const scores = {
+  const s = {
     E: round2(eS), I: round2(iS),
     N: round2(nS), S: round2(sS),
     T: round2(tS), F: round2(fS),
@@ -1230,39 +1300,28 @@ function calculateMbti(features, computed) {
   };
 
   const axes = {
-    'E/I': buildAR('E/I', 'E', 'I', scores.E, scores.I, eC, iC),
-    'N/S': buildAR('N/S', 'N', 'S', scores.N, scores.S, nC, sC),
-    'T/F': buildAR('T/F', 'T', 'F', scores.T, scores.F, tC, fC),
-    'J/P': buildAR('J/P', 'J', 'P', scores.J, scores.P, jC, pC),
+    'E/I': buildAR('E/I','E','I',s.E,s.I,eC,iC),
+    'N/S': buildAR('N/S','N','S',s.N,s.S,nC,sC),
+    'T/F': buildAR('T/F','T','F',s.T,s.F,tC,fC),
+    'J/P': buildAR('J/P','J','P',s.J,s.P,jC,pC),
   };
 
-  const type =
+  const type = '' +
     axes['E/I'].result +
     axes['N/S'].result +
     axes['T/F'].result +
     axes['J/P'].result;
 
-  // 기존 secondary 로직 유지
-  const closest = Object.entries(axes)
-    .map(([k, v]) => {
-      const vals = Object.values(v.scores);
-      return { axis: k, gap: Math.abs(vals[0] - vals[1]) };
-    })
-    .sort((a, b) => a.gap - b.gap)[0];
+  const cl = Object.entries(axes)
+    .map(([k,v]) => ({ k, gap: Math.abs(Object.values(v.scores)[0] - Object.values(v.scores)[1]) }))
+    .sort((a,b) => a.gap - b.gap)[0];
 
-  const secondaryChars = type.split('');
-  const axisIndex = { 'E/I': 0, 'N/S': 1, 'T/F': 2, 'J/P': 3 };
-  const [a, b] = closest.axis.split('/');
-  const idx = axisIndex[closest.axis];
-  secondaryChars[idx] = secondaryChars[idx] === a ? b : a;
+  const ch = type.split('');
+  const im = {'E/I':0,'N/S':1,'T/F':2,'J/P':3};
+  const [ca,cb] = cl.k.split('/');
+  ch[im[cl.k]] = ch[im[cl.k]] === ca ? cb : ca;
 
-  return {
-    type,
-    secondary: secondaryChars.join(''),
-    scores,
-    axes,
-    traits, // 디버깅용
-  };
+  return { type, secondary: ch.join(''), scores: s, axes };
 }
 // =====================================================================
 // analysis/interpretation.js
