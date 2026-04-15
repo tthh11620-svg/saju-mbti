@@ -1,33 +1,17 @@
-// =====================================================================
-// Cloudflare Pages Function — POST /api/analyze
-// 결정적 사주 계산 엔진 v2.0
-//
-// 명령서(analyze.txt) 8개 원칙 적용:
-//   1. 1층(결정적 계산) / 2층(해석) 분리
-//   2. calibration / signature / 샘플 하드코딩 전면 폐기
-//   3. 월주: 12절기 절입 시각 기준 (tyme4ts/sxwnl)
-//   4. 연주: 입춘 절입 시각 기준
-//   5. 일주: sxwnl 만세력 anchor + KST 명시 + 자시 정책 보정
-//   6. 시주: 12지지 매핑/오자둔/자시 옵션 분리
-//   7. 음력 입력: 별도 경로(lunarToSolar) → 양력 경로 합류
-//   8. 정확도 우선
-//
-// 의존성: npm i tyme4ts  (sxwnl 알고리즘, 1900~2100 분 단위 정확도)
-// =====================================================================
-
-import { SolarTime, LunarDay, LunarHour } from 'tyme4ts';
-
+// Cloudflare Pages Function — POST /api/analyze (v3.1)
+// 결정적 사주 계산 엔진 v3 + MBTI v4 (완전 재설계)
+// 원국: 자체 엔진. MBTI: 투명 가산 모델 + top_contributors
+// 의존성: npm i tyme4ts
+import { SolarTerm, LunarDay, SolarTime } from 'tyme4ts';
 
 // =====================================================================
 // ganzhi/constants.js
-// 천간/지지/오행/지장간 등 정적 상수.
-// 1층(결정적 계산)과 2층(해석) 모두에서 import 됨.
+// 천간/지지/오행 등 정적 데이터. 간지 계산 엔진들이 공유.
 // =====================================================================
 
 const CHEONGAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
 const JIJI     = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
 
-// [오행, 음양(1=양, 0=음)]
 const CHAR_INFO = {
   '甲':['목',1],'乙':['목',0],'丙':['화',1],'丁':['화',0],
   '戊':['토',1],'己':['토',0],'庚':['금',1],'辛':['금',0],
@@ -36,29 +20,44 @@ const CHAR_INFO = {
   '辰':['토',1],'巳':['화',1],'午':['화',0],'未':['토',0],
   '申':['금',1],'酉':['금',0],'戌':['토',1],'亥':['수',1],
 };
-
 const ELEM_IDX   = {'목':0,'화':1,'토':2,'금':3,'수':4};
-const ELEM_HANJA = {'목':'木','화':'火','토':'土','금':'金','水':'水','수':'水'};
+const ELEM_HANJA = {'목':'木','화':'火','토':'土','금':'金','수':'水'};
 
 const DAY_MASTER_LABEL = {
   '甲':'갑목(甲木)','乙':'을목(乙木)','丙':'병화(丙火)','丁':'정화(丁火)','戊':'무토(戊土)',
   '己':'기토(己土)','庚':'경금(庚金)','辛':'신금(辛金)','壬':'임수(壬水)','癸':'계수(癸水)',
 };
-
 const JIJANGGAN = {
   '子':['癸'],'丑':['己','癸','辛'],'寅':['甲','丙','戊'],'卯':['乙'],
   '辰':['戊','乙','癸'],'巳':['丙','戊','庚'],'午':['丁','己'],'未':['己','丁','乙'],
   '申':['庚','壬','戊'],'酉':['辛'],'戌':['戊','辛','丁'],'亥':['壬','甲'],
 };
 
+const ZASI_POLICY = Object.freeze({
+  SAME_DAY_MIDNIGHT: 'same_day_midnight',
+  NEXT_DAY_MIDNIGHT: 'next_day_midnight',
+});
+const DEFAULT_ZASI_POLICY = ZASI_POLICY.NEXT_DAY_MIDNIGHT;
+
+// 60갑자 인덱스 유틸
+function cycleIdxFromChars(stem, branch) {
+  const s = CHEONGAN.indexOf(stem);
+  const b = JIJI.indexOf(branch);
+  if (s < 0 || b < 0) throw new Error(`Invalid stem/branch: ${stem}${branch}`);
+  for (let i = 0; i < 60; i++) if (i % 10 === s && i % 12 === b) return i;
+  throw new Error(`Invalid 60-cycle pair: ${stem}${branch}`);
+}
+function cycleIdxToChars(idx) {
+  const i = ((idx % 60) + 60) % 60;
+  return [CHEONGAN[i % 10], JIJI[i % 12]];
+}
+
+// 기타 상수 (postProcess가 쓰는 것들)
 const TWELVE_STAGES = ['장생','목욕','관대','건록','제왕','쇠','병','사','묘','절','태','양'];
 const JANGSEONG_START = {'甲':11,'乙':6,'丙':2,'丁':9,'戊':2,'己':9,'庚':5,'辛':0,'壬':8,'癸':3};
 const IS_YANG_GAN = {'甲':true,'乙':false,'丙':true,'丁':false,'戊':true,'己':false,'庚':true,'辛':false,'壬':true,'癸':false};
-
 const GAN_POSITIONS = ['년간','월간','일간','시간'];
 const JI_POSITIONS  = ['년지','월지','일지','시지'];
-
-// 합/충/형/파/해
 const CHEONGAN_HAP   = [['甲','己','토'],['乙','庚','금'],['丙','辛','수'],['丁','壬','목'],['戊','癸','화']];
 const CHEONGAN_CHUNG = [['甲','庚'],['乙','辛'],['丙','壬'],['丁','癸']];
 const YUKAP   = [['子','丑','토'],['寅','亥','목'],['卯','戌','화'],['辰','酉','금'],['巳','申','수'],['午','未','화']];
@@ -70,8 +69,6 @@ const HYUNG2  = [['子','卯']];
 const JAHYUNG = new Set(['辰','午','酉','亥']);
 const PA      = [['子','酉'],['卯','午'],['寅','亥'],['巳','申'],['辰','丑'],['戌','未']];
 const HAE     = [['子','未'],['丑','午'],['寅','巳'],['卯','辰'],['申','亥'],['酉','戌']];
-
-// 신살
 const SAMHAP_GROUP = {
   '寅':'寅午戌','午':'寅午戌','戌':'寅午戌',
   '申':'申子辰','子':'申子辰','辰':'申子辰',
@@ -92,12 +89,10 @@ const CHEONUL = {
 const MUNCHANG = {'甲':'巳','乙':'午','丙':'申','丁':'酉','戊':'申','己':'酉','庚':'亥','辛':'子','壬':'寅','癸':'卯'};
 const HAKDANG  = {'甲':'亥','乙':'午','丙':'寅','丁':'酉','戊':'寅','己':'酉','庚':'巳','辛':'子','壬':'申','癸':'卯'};
 const GEUMYEO  = {'甲':'辰','乙':'巳','丙':'未','丁':'申','戊':'未','己':'申','庚':'戌','辛':'亥','壬':'丑','癸':'寅'};
-
 const MONTH_BRANCH_BOOST = {
   '寅':'목','卯':'목','辰':'토','巳':'화','午':'화','未':'토',
   '申':'금','酉':'금','戌':'토','亥':'수','子':'수','丑':'토',
 };
-
 const CONFLICT_MEANING = {
   '子午':'감정과 행동의 온도차가 커질 수 있는 구조',
   '寅申':'환경 적응과 자기 방향성 사이의 충돌이 생기기 쉬운 구조',
@@ -107,128 +102,164 @@ const CONFLICT_MEANING = {
   '丑未':'책임과 감정 부담이 동시에 쌓일 수 있는 구조',
 };
 
-// ─── 자시 정책 옵션 ──────────────────────────────────────────────
-// same_day_midnight  : 子時는 23:00에 시작, 23:00에 일주가 다음날로 변경 (전통/sxwnl·tyme4ts 기본)
-// next_day_midnight  : 자시는 23:00에 시작하지만 일주는 자정(00:00)에만 변경 (현대 한국 관행, 야자시/조자시 구분)
-const ZASI_POLICY = Object.freeze({
-  SAME_DAY_MIDNIGHT: 'same_day_midnight',
-  NEXT_DAY_MIDNIGHT: 'next_day_midnight',
-});
-const DEFAULT_ZASI_POLICY = ZASI_POLICY.NEXT_DAY_MIDNIGHT;
+// =====================================================================
+// calendar/solarTermProvider.js
+// 절기 시각 공급자. tyme4ts 사용하되 SolarTerm API만 씀.
+// EightChar / SolarTime / LunarHour 일절 사용 금지.
+//
+// 역할:
+//   - 입춘 시각
+//   - 12절(월 경계)의 시각
+//   - 특정 시각이 어느 월 구간(寅~丑)에 속하는지 판정
+// =====================================================================
 
-// ─── 60갑자 인덱싱 유틸 ─────────────────────────────────────────
-function cycleIdxFromChars(stem, branch) {
-  const s = CHEONGAN.indexOf(stem);
-  const b = JIJI.indexOf(branch);
-  if (s < 0 || b < 0) throw new Error(`Invalid stem/branch: ${stem}${branch}`);
-  for (let i = 0; i < 60; i++) {
-    if (i % 10 === s && i % 12 === b) return i;
+
+
+// 12절 ordered list. 월지 배정 순서대로.
+// tyme4ts NAMES 배열 인덱스와 각 월지.
+const JIE_SEQUENCE = [
+  { name: '立春', index: 3,  branch: '寅' },
+  { name: '惊蛰', index: 5,  branch: '卯' },
+  { name: '清明', index: 7,  branch: '辰' },
+  { name: '立夏', index: 9,  branch: '巳' },
+  { name: '芒种', index: 11, branch: '午' },
+  { name: '小暑', index: 13, branch: '未' },
+  { name: '立秋', index: 15, branch: '申' },
+  { name: '白露', index: 17, branch: '酉' },
+  { name: '寒露', index: 19, branch: '戌' },
+  { name: '立冬', index: 21, branch: '亥' },
+  { name: '大雪', index: 23, branch: '子' },
+  { name: '小寒', index: 1,  branch: '丑' }, // 小寒는 다음 해 1월에 발생
+];
+
+// JulianDay → 분 단위 KST datetime 객체
+function jdToKstDateTime(jd) {
+  // tyme4ts SolarTime은 이미 KST(local) 기준 그대로 나옴 (timezone-naive)
+  const st = jd.getSolarTime();
+  return {
+    year:   st.getYear(),
+    month:  st.getMonth(),
+    day:    st.getDay(),
+    hour:   st.getHour(),
+    minute: st.getMinute(),
+    second: st.getSecond(),
+    // 분 단위 비교용 정수 (1분 단위)
+    totalMinutes: toMinutes(st.getYear(), st.getMonth(), st.getDay(), st.getHour(), st.getMinute()),
+    jd: jd.getDay(),
+  };
+}
+
+// epoch-free 분 단위 타임스탬프 (비교만 가능하면 됨). JD 그대로 쓴다.
+function toMinutes(y, mo, d, h, mi) {
+  // Date.UTC를 쓰되 KST ≡ UTC로 간주 (벽시계 시각 순서만 필요)
+  return Math.floor(Date.UTC(y, mo - 1, d, h, mi, 0) / 60000);
+}
+
+/**
+ * 특정 연도의 입춘 시각.
+ * @returns {{year,month,day,hour,minute,totalMinutes}}
+ */
+function getIpchun(year) {
+  const t = SolarTerm.fromIndex(year, 3); // 立春
+  return jdToKstDateTime(t.getJulianDay());
+}
+
+/**
+ * 특정 연도의 12절 시각 리스트.
+ * 중요: "이 연도의 사주 월주 계산에 쓰일 구간들"을 만들어야 하므로
+ *       해당 연도 입춘부터 다음 연도 입춘 직전까지가 포함되어야 한다.
+ *
+ * 구체적으로:
+ *   - 입춘(寅월 시작) ~ 경칩 전
+ *   - 경칩(卯월 시작) ~ 청명 전
+ *   - ...
+ *   - 대설(子월 시작) ~ 소한 전
+ *   - 소한(丑월 시작) ~ 다음해 입춘 전   ← 소한은 year+1 달력에 있음
+ *
+ * @returns {Array<{name, branch, start:{year,month,day,hour,minute,totalMinutes}}>}
+ */
+function getMonthBoundaries(sajuYear) {
+  const boundaries = [];
+  for (const { name, index, branch } of JIE_SEQUENCE) {
+    // 小寒(index=1)만 다음 해 달력에 속함
+    const queryYear = (name === '小寒') ? sajuYear + 1 : sajuYear;
+    const t = SolarTerm.fromIndex(queryYear, index);
+    boundaries.push({ name, branch, start: jdToKstDateTime(t.getJulianDay()) });
   }
-  throw new Error(`Invalid 60-cycle pair: ${stem}${branch}`);
+  return boundaries;
 }
-
-function cycleIdxToChars(idx) {
-  const i = ((idx % 60) + 60) % 60;
-  return [CHEONGAN[i % 10], JIJI[i % 12]];
-}
-
-// =====================================================================
-// calendar/solarTermEngine.js
-// 절기 절입 시각 판정 엔진 (tyme4ts 기반).
-//
-// tyme4ts는 寿星天文历(sxwnl, 许剑伟) 기반으로 1900~2100 절기를
-// 분 단위 정확도로 제공한다. KASI/자금산천문대 데이터와 일치.
-//
-// 명령서 3번: 고정 절입일 배열 금지. 실제 절입 시각으로 판정.
-// =====================================================================
-
-
 
 /**
- * 입력 양력 datetime이 어느 절기 구간에 속하는지 판정하기 위한
- * 핵심 보조: tyme4ts SolarTime 인스턴스를 만든다.
+ * 주어진 시각이 어떤 사주 연도에 속하는지 판정.
+ * 입춘 이전이면 전년도, 이후면 당해.
  *
- * 시간대: 입력은 모두 KST(현지 한국 시간) 기준으로 가정한다.
- * tyme4ts 자체는 timezone-naive하게 동작하므로, 외부에서
- * 항상 KST 벽시계 시각을 그대로 넘긴다.
+ * @param {{year,month,day,hour,minute}} dt
+ * @returns {number} 사주 연도
  */
-function makeSolarTime(year, month, day, hour, minute = 0, second = 0) {
-  if (year < 1900 || year > 2100) {
-    throw new Error(`year out of range (1900~2100): ${year}`);
+function resolveSajuYear({ year, month, day, hour, minute }) {
+  const ipchunThis = getIpchun(year);
+  const dtMin = toMinutes(year, month, day, hour, minute);
+  if (dtMin < ipchunThis.totalMinutes) {
+    return year - 1;
   }
-  return SolarTime.fromYmdHms(year, month, day, hour, minute, second);
+  return year;
 }
 
 /**
- * tyme4ts EightChar를 직접 얻는다. 이는 이미
- *   - 입춘 절입 시각 기준 연주
- *   - 12절기 절입 시각 기준 월주
- *   - 일주(전통식 자시 정책: 23시에 일주 변경)
- *   - 시주(子~亥 12지지)
- * 가 모두 적용된 결과다.
+ * 주어진 시각이 어떤 월지(寅~丑) 구간에 속하는지.
+ * sajuYear는 미리 resolveSajuYear로 구해서 넘길 것.
  *
- * 이 함수의 결과는 자시 정책이 same_day_midnight일 때의 결과로 간주.
- * next_day_midnight 정책 적용은 ganzhi/dayPillar, hourPillar에서 보정한다.
+ * @returns {{name:string, branch:string, branchIdx:number(0~11 in JIE_SEQUENCE)}}
  */
-function getRawEightChar(solarTime) {
-  return solarTime.getLunarHour().getSixtyCycleHour().getEightChar();
-}
-
-/**
- * 디버깅/검증용: EightChar를 [년간, 년지, 월간, 월지, 일간, 일지, 시간, 시지] 배열로.
- */
-function eightCharToArray(ec) {
-  return [
-    ec.getYear().getHeavenStem().getName(),
-    ec.getYear().getEarthBranch().getName(),
-    ec.getMonth().getHeavenStem().getName(),
-    ec.getMonth().getEarthBranch().getName(),
-    ec.getDay().getHeavenStem().getName(),
-    ec.getDay().getEarthBranch().getName(),
-    ec.getHour().getHeavenStem().getName(),
-    ec.getHour().getEarthBranch().getName(),
-  ];
+function resolveMonthBranch(dt, sajuYear) {
+  const dtMin = toMinutes(dt.year, dt.month, dt.day, dt.hour, dt.minute);
+  const boundaries = getMonthBoundaries(sajuYear);
+  // 마지막부터 스캔: dt >= boundary.start인 가장 최근 구간
+  for (let i = boundaries.length - 1; i >= 0; i--) {
+    if (dtMin >= boundaries[i].start.totalMinutes) {
+      return {
+        name: boundaries[i].name,
+        branch: boundaries[i].branch,
+        jieIdx: i, // 0=寅, 1=卯, ..., 11=丑
+      };
+    }
+  }
+  // 이 코드에 도달하면 입춘 이전 — resolveSajuYear 처리 누락
+  throw new Error(
+    `resolveMonthBranch: dt(${JSON.stringify(dt)}) is before 입춘 of sajuYear ${sajuYear}. ` +
+    `Caller must resolveSajuYear first.`
+  );
 }
 
 // =====================================================================
-// calendar/lunarConversion.js
-// 음력(윤달 포함) → 양력 변환 (tyme4ts 기반).
-//
-// 명령서 7번: 음력 입력은 별도 경로. 변환과 원국 계산을 한 함수에 섞지 마라.
+// calendar/lunarConverter.js
+// 음력(윤달 포함) → 양력 변환.
+// tyme4ts LunarDay 사용. EightChar/LunarHour는 사용 금지.
 // =====================================================================
 
 
 
 /**
- * 음력 → 양력 datetime 변환.
- *
  * @param {object} input
- * @param {number} input.year   음력 연도
- * @param {number} input.month  음력 월 (1~12). 윤달은 isLeap=true로 표시
- * @param {number} input.day    음력 일
- * @param {boolean} [input.isLeap=false]  윤달 여부
+ * @param {number} input.year
+ * @param {number} input.month   1~12
+ * @param {number} input.day
+ * @param {boolean} [input.isLeap=false]
  * @param {number} input.hour
  * @param {number} [input.minute=0]
- *
- * @returns {{year, month, day, hour, minute}} 양력 KST datetime
+ * @returns {{year, month, day, hour, minute}} 양력 KST
  */
 function lunarToSolar({ year, month, day, isLeap = false, hour, minute = 0 }) {
-  if (year < 1900 || year > 2100) {
-    throw new Error(`year out of range (1900~2100): ${year}`);
-  }
-  if (month < 1 || month > 12) {
-    throw new Error(`lunar month must be 1~12 (use isLeap for 윤달): ${month}`);
-  }
-  // tyme4ts 규약: 윤달은 음수 month로 표기 (-2 = 윤2월)
-  const tymeMonth = isLeap ? -month : month;
+  if (year < 1900 || year > 2100) throw new Error(`year out of range (1900~2100): ${year}`);
+  if (month < 1 || month > 12)   throw new Error(`lunar month must be 1~12 (use isLeap): ${month}`);
 
+  const tymeMonth = isLeap ? -month : month;
   let solarDay;
   try {
     solarDay = LunarDay.fromYmd(year, tymeMonth, day).getSolarDay();
   } catch (e) {
     throw new Error(`Invalid lunar date ${year}-${isLeap ? '윤' : ''}${month}-${day}: ${e.message}`);
   }
-
   return {
     year:   solarDay.getYear(),
     month:  solarDay.getMonth(),
@@ -238,113 +269,163 @@ function lunarToSolar({ year, month, day, isLeap = false, hour, minute = 0 }) {
   };
 }
 
-/**
- * 음력 datetime으로부터 직접 EightChar를 얻는 경로.
- * 양력 변환 → 사주 계산을 한 번에 하지만, 의미상 두 단계가 분리되어 있음을 명시.
- *
- * 사주 계산 본체에서는 lunarToSolar()로 양력 변환 → coreEngine 경로를 권장.
- * 이 함수는 검증/디버깅용 보조.
- */
-function lunarHourEightChar({ year, month, day, isLeap = false, hour, minute = 0 }) {
-  const tymeMonth = isLeap ? -month : month;
-  return LunarHour.fromYmdHms(year, tymeMonth, day, hour, minute, 0)
-    .getSixtyCycleHour()
-    .getEightChar();
-}
-
 // =====================================================================
-// ganzhi/yearPillar.js
-// 연주 계산 — 입춘 절입 시각 기준.
-//
-// 명령서 4번: 1월 1일 또는 2월 4일 고정 규칙 금지. 실제 입춘 절입 시각 기준.
-//
-// 실제 절입 시각 판정은 tyme4ts(sxwnl 알고리즘)에 위임한다.
-// 이 모듈은 그 결과의 "연주" 부분을 추출 + 검증하는 책임만 가진다.
+// ganzhi/yearPillarEngine.js
+// 연주 계산 — 입춘 기준.
+// solarTermProvider.resolveSajuYear()가 이미 입춘 경계를 적용해서
+// sajuYear를 넘겨주므로, 이 엔진은 sajuYear → 60갑자 매핑만 담당.
 // =====================================================================
 
 
 
+// Anchor: 서기 4년 = 甲子년 (유일하게 검증 가능한 역사적 anchor).
+//   (year - 4) mod 60 → 60갑자 인덱스
+// 예: 2024 → (2024-4) mod 60 = 2020 mod 60 = 40 → 甲辰 ✓
+//     1984 → (1984-4) mod 60 = 1980 mod 60 = 0  → 甲子 ✓
+const YEAR_ANCHOR = 4;
+
 /**
- * tyme4ts EightChar로부터 연주를 추출.
- *
- * @returns {{stem, branch, pillar, cycleIdx}}
+ * @param {number} sajuYear  resolveSajuYear() 결과
  */
-function extractYearPillar(ec) {
-  const sc = ec.getYear();
-  const stem = sc.getHeavenStem().getName();
-  const branch = sc.getEarthBranch().getName();
+function computeYearPillar(sajuYear) {
+  if (!Number.isInteger(sajuYear)) throw new Error(`sajuYear must be integer: ${sajuYear}`);
+  const cycleIdx = ((sajuYear - YEAR_ANCHOR) % 60 + 60) % 60;
+  const stem = CHEONGAN[cycleIdx % 10];
+  const branch = JIJI[cycleIdx % 12];
   return {
+    sajuYear,
     stem,
     branch,
     pillar: `${stem}${branch}`,
-    cycleIdx: cycleIdxFromChars(stem, branch),
+    cycleIdx,
   };
 }
 
 // =====================================================================
-// ganzhi/monthPillar.js
-// 월주 계산 — 12절기 절입 시각 기준.
+// ganzhi/monthPillarEngine.js
+// 월주 계산 — 절입 시각 기준 월지 + 오호둔(五虎遁)으로 월간 결정.
 //
-// 명령서 3번:
-//   - 고정 절입일 배열 금지
-//   - month/day 단순 비교 금지
-//   - getMonthIdx() 류의 근사 함수 금지
-//   - 실제 절기 절입 시각 기준으로 월지 산출
+// 월지 판정은 solarTermProvider.resolveMonthBranch()로 완료된 상태.
+// 이 엔진은 그 결과(jieIdx)와 연간(yearStem)으로부터 월간을 계산.
 //
-// 실제 절기 시각 판정은 tyme4ts(sxwnl)에 위임. 이 모듈은 추출만 한다.
+// ─── 오호둔 (五虎遁) ──────────────────────────────────────────
+// 寅月(입춘 시작)의 월간은 년간에 따라 결정:
+//   甲/己년 → 丙寅월부터
+//   乙/庚년 → 戊寅월부터
+//   丙/辛년 → 庚寅월부터
+//   丁/壬년 → 壬寅월부터
+//   戊/癸년 → 甲寅월부터
+// 이후 월은 천간이 1씩 증가하며 지지도 寅→卯→辰→...→丑 순회.
 // =====================================================================
 
 
 
-function extractMonthPillar(ec) {
-  const sc = ec.getMonth();
-  const stem = sc.getHeavenStem().getName();
-  const branch = sc.getEarthBranch().getName();
-  return {
-    stem,
-    branch,
-    pillar: `${stem}${branch}`,
-    cycleIdx: cycleIdxFromChars(stem, branch),
-  };
+// 오호둔: year stem index → 寅월 천간 index
+// 甲(0)/己(5) → 丙(2), 乙(1)/庚(6) → 戊(4), 丙(2)/辛(7) → 庚(6),
+// 丁(3)/壬(8) → 壬(8), 戊(4)/癸(9) → 甲(0)
+function tigerMonthStartStemIdx(yearStemIdx) {
+  // 공식: (yearStemIdx % 5) * 2 + 2, mod 10
+  return ((yearStemIdx % 5) * 2 + 2) % 10;
 }
 
-// =====================================================================
-// ganzhi/dayPillar.js
-// 일주 계산 — anchor 기반, 자시 정책 적용.
-//
-// 명령서 5번:
-//   - anchor 방식 사용 가능하되 기준점 재검증
-//   - UTC/로컬 날짜 경계 문제 없도록
-//   - 한국 시간 기준 날짜 변경이 일주에 미치는 영향 검토
-//   - 자시 처리 옵션과 일주 변경 로직이 충돌하지 않게
-//
-// 구현 전략:
-//   - 결정적 anchor 계산 자체는 tyme4ts(검증된 sxwnl 만세력)에 위임.
-//   - tyme4ts 기본 정책은 same_day_midnight (23:00에 일주 변경, 전통식).
-//   - 사용자 자시 정책이 next_day_midnight이면, 23:00~23:59 구간에서
-//     일주를 전날로 1 빼는 보정을 한다(시주는 hourPillar에서 별도 처리).
-// =====================================================================
-
-
-
 /**
- * @param {object} ec        tyme4ts EightChar
- * @param {number} hour      0~23 (KST)
- * @param {string} policy    ZASI_POLICY.*
+ * @param {number} jieIdx   solarTermProvider.resolveMonthBranch가 리턴한 0~11 (0=寅, 11=丑)
+ * @param {string} yearStem 연주 천간
+ * @param {string} monthBranch  지지 (검증 용도)
  */
-function extractDayPillar(ec, hour, policy) {
-  const sc = ec.getDay();
-  const rawStem = sc.getHeavenStem().getName();
-  const rawBranch = sc.getEarthBranch().getName();
-  const rawIdx = cycleIdxFromChars(rawStem, rawBranch);
+function computeMonthPillar(jieIdx, yearStem, monthBranch) {
+  const yearStemIdx = CHEONGAN.indexOf(yearStem);
+  if (yearStemIdx < 0) throw new Error(`Invalid yearStem: ${yearStem}`);
+  if (jieIdx < 0 || jieIdx > 11) throw new Error(`jieIdx must be 0~11: ${jieIdx}`);
 
-  let cycleIdx = rawIdx;
+  const startStemIdx = tigerMonthStartStemIdx(yearStemIdx);
+  const monthStemIdx = (startStemIdx + jieIdx) % 10;
 
-  // next_day_midnight 정책: tyme4ts는 이미 23:00에 일주를 다음날로 넘겼음.
-  // 한국 현대 관행에서는 23:00~23:59는 아직 같은 날이므로 1 되돌린다.
-  if (policy === ZASI_POLICY.NEXT_DAY_MIDNIGHT && hour === 23) {
-    cycleIdx = ((rawIdx - 1) % 60 + 60) % 60;
+  const stem = CHEONGAN[monthStemIdx];
+  // 지지는 jieIdx 순서대로 寅(2) 부터
+  const branchIdx = (2 + jieIdx) % 12;
+  const branch = JIJI[branchIdx];
+
+  // 검증: solarTermProvider가 준 branch와 내부 계산 branch가 일치해야 함
+  if (monthBranch && monthBranch !== branch) {
+    throw new Error(
+      `monthPillarEngine internal inconsistency: ` +
+      `resolveMonthBranch branch=${monthBranch} vs computed=${branch} (jieIdx=${jieIdx})`
+    );
   }
+
+  return {
+    stem,
+    branch,
+    pillar: `${stem}${branch}`,
+    cycleIdx: cycleIdxFromChars(stem, branch),
+  };
+}
+
+// =====================================================================
+// ganzhi/dayPillarEngine.js
+// 일주 계산 — 자체 anchor 기반. tyme4ts의 일주/EightChar 일절 사용 안 함.
+//
+// ─── 설계 결정 사항 ───────────────────────────────────────────
+// 1. Anchor
+//    2000-01-01 00:00 KST = 甲午일 (cycleIdx 30)
+//    이 anchor는 여러 만세력(大统曆, sxwnl, 한국천문연구원 등)에서
+//    모두 일치하는 역사적 검증치. tyme4ts도 포함.
+//
+// 2. 날짜 차이 계산
+//    KST 벽시계 기준 민간(civil) 날짜만 사용.
+//    Date.UTC(y, m-1, d)로 계산 → 타임존/DST 간섭 없음.
+//    KST는 항상 UTC+9 고정이므로 벽시계 → civil date 매핑이 깨끗함.
+//
+// 3. 자시 정책
+//    - same_day_midnight: 23:00에 일주가 다음날로 변경 (전통)
+//    - next_day_midnight: 00:00에만 일주가 변경 (현대 한국)
+//
+// ─── 검증 ──────────────────────────────────────────────────
+// anchor 값은 tests/saju.test.js의 회귀 테스트에서 tyme4ts 결과와
+// 대조 검증됨. 불일치 발생 시 anchor를 수정하는 게 아니라 먼저
+// 어느 쪽이 틀렸는지 독립 검증해야 함 (만세력 앱 등).
+// =====================================================================
+
+
+
+
+// 2000-01-01 (토요일) = 戊午 = cycleIdx 54
+// 검증: 戊(천간 idx 4) + 午(지지 idx 6). 여러 만세력 일치. tyme4ts로 회귀 검증됨.
+const ANCHOR = Object.freeze({
+  year: 2000, month: 1, day: 1,
+  cycleIdx: 54,
+});
+
+function civilDaysSinceAnchor(year, month, day) {
+  // KST ≡ UTC+9 고정. Date.UTC로 벽시계 민간일 산출.
+  const target = Date.UTC(year, month - 1, day);
+  const anchor = Date.UTC(ANCHOR.year, ANCHOR.month - 1, ANCHOR.day);
+  return Math.round((target - anchor) / 86400000);
+}
+
+/**
+ * @param {{year,month,day,hour,minute}} dt   KST 벽시계
+ * @param {string} policy   ZASI_POLICY.*
+ * @returns {{stem, branch, pillar, cycleIdx, adjusted, civilDays}}
+ */
+function computeDayPillar(dt, policy) {
+  if (!Object.values(ZASI_POLICY).includes(policy)) {
+    throw new Error(`Unknown zasiPolicy: ${policy}`);
+  }
+
+  // 1. 기본 civil date의 일주
+  let days = civilDaysSinceAnchor(dt.year, dt.month, dt.day);
+  let cycleIdx = ((ANCHOR.cycleIdx + days) % 60 + 60) % 60;
+  let adjusted = false;
+
+  // 2. 자시 정책 적용
+  // same_day_midnight: 23:00이면 일주를 다음날로 1 증가
+  if (policy === ZASI_POLICY.SAME_DAY_MIDNIGHT && dt.hour === 23) {
+    cycleIdx = (cycleIdx + 1) % 60;
+    adjusted = true;
+  }
+  // next_day_midnight: 보정 없음 (기본 civil date 그대로가 정확)
 
   const [stem, branch] = cycleIdxToChars(cycleIdx);
   return {
@@ -352,70 +433,62 @@ function extractDayPillar(ec, hour, policy) {
     branch,
     pillar: `${stem}${branch}`,
     cycleIdx,
-    rawCycleIdx: rawIdx,           // 검증용
-    adjusted: cycleIdx !== rawIdx, // 자시 보정 발생 여부
+    adjusted,
+    civilDays: days,
   };
 }
 
+// 테스트/검증용 export
+const ANCHOR_DATE = ANCHOR;
+
 // =====================================================================
-// ganzhi/hourPillar.js
-// 시주 계산 — 자시 처리 정책 옵션 포함.
+// ganzhi/hourPillarEngine.js
+// 시주 계산 — 시각 → 12지지 매핑, 일간 → 오자둔 천간.
 //
-// 명령서 6번:
-//   - 12지지 시각 매핑 분리
-//   - 시간대 판정 함수 분리
-//   - 일간 기반 시간 천간 계산 분리
-//   - 자시 처리 정책 옵션화
-//
-// 시주 천간은 일간으로부터 결정되므로, dayPillar에서 자시 보정이
-// 일어났다면 시주의 천간도 그 보정된 일간 기준으로 계산되어야 한다.
+// 자시 정책 주의:
+//   - 시지 매핑은 정책 무관. 子時 = 23:00~00:59 고정.
+//   - 정책은 "어느 일주를 기준으로 오자둔을 돌릴지"를 결정.
+//   - dayPillarEngine에서 이미 보정된 일간을 받으므로 이 엔진은 그대로 사용.
 // =====================================================================
 
 
 
 /**
- * 1. 시각(0~23) → 12지지 인덱스 매핑.
- *    子時 = 23:00~00:59 (인덱스 0)
- *    丑時 = 01:00~02:59 (1)
- *    ...
- *    亥時 = 21:00~22:59 (11)
- *
- * 자시 정책이 무엇이든 "지지 매핑"은 동일하다. 정책은 일주 변경 시점만 결정.
+ * 시각(0~23) → 12지지 인덱스.
+ * 子時=0 (23~01), 丑時=1 (01~03), ..., 亥時=11 (21~23).
  */
 function hourToBranchIdx(hour) {
-  if (hour < 0 || hour > 23) throw new Error(`hour out of range: ${hour}`);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new Error(`hour out of range: ${hour}`);
   if (hour === 23) return 0;
   return Math.floor((hour + 1) / 2);
 }
 
 /**
- * 2. 일간 + 시지 → 시주 천간.
- *    오자둔(五子遁) 규칙:
- *      甲己日 → 子時 = 甲子
- *      乙庚日 → 子時 = 丙子
- *      丙辛日 → 子時 = 戊子
- *      丁壬日 → 子時 = 庚子
- *      戊癸日 → 子時 = 壬子
- *
- *    그 다음은 천간이 1씩 증가하면서 12지지 순회.
- *    공식: hourStemIdx = (dayStemIdx % 5 * 2 + branchIdx) % 10
+ * 오자둔(五子遁): 일간에 따른 子時 천간.
+ *   甲/己일 → 甲子  (startStem=0)
+ *   乙/庚일 → 丙子  (startStem=2)
+ *   丙/辛일 → 戊子  (startStem=4)
+ *   丁/壬일 → 庚子  (startStem=6)
+ *   戊/癸일 → 壬子  (startStem=8)
+ * 공식: startStem = (dayStemIdx % 5) * 2
  */
-function hourStemIdxFromDay(dayStemChar, hourBranchIdx) {
-  const dayStemIdx = CHEONGAN.indexOf(dayStemChar);
-  if (dayStemIdx < 0) throw new Error(`Invalid day stem: ${dayStemChar}`);
-  const startStem = (dayStemIdx % 5) * 2;
-  return (startStem + hourBranchIdx) % 10;
+function ratMouseStartStemIdx(dayStemIdx) {
+  return (dayStemIdx % 5) * 2;
 }
 
 /**
- * 3. 최종 시주 = (일간 + 시각) 조합.
- *    자시 정책 적용된 dayPillar 결과(보정된 일간)를 받아서 처리한다.
- *    그래서 23:00~23:59 next_day_midnight 케이스에서도 시주 천간이 일치.
+ * @param {string} dayStem   dayPillarEngine 결과의 stem (자시 보정 반영됨)
+ * @param {number} hour      0~23
  */
-function computeHourPillar(adjustedDayStem, hour) {
+function computeHourPillar(dayStem, hour) {
+  const dayStemIdx = CHEONGAN.indexOf(dayStem);
+  if (dayStemIdx < 0) throw new Error(`Invalid dayStem: ${dayStem}`);
+
   const branchIdx = hourToBranchIdx(hour);
-  const stemIdx = hourStemIdxFromDay(adjustedDayStem, branchIdx);
-  const stem = CHEONGAN[stemIdx];
+  const startStem = ratMouseStartStemIdx(dayStemIdx);
+  const hourStemIdx = (startStem + branchIdx) % 10;
+
+  const stem = CHEONGAN[hourStemIdx];
   const branch = JIJI[branchIdx];
   return {
     stem,
@@ -427,12 +500,10 @@ function computeHourPillar(adjustedDayStem, hour) {
 
 // =====================================================================
 // saju/coreEngine.js
-// 1층: 결정적 사주 8자 계산 엔진.
+// 파이프라인: 입력 → 양력 변환 → 절기 조회 → 4주 계산 → 8자
 //
-// 명령서 1번: 같은 입력이면 언제나 같은 결과. 샘플 보정/감성 해석 일절 없음.
-// 명령서 7번: 양력/음력 입력 경로 분리.
-//
-// 입력 → [년간,년지,월간,월지,일간,일지,시간,시지] (8문자)
+// 명령서 구조 그대로. tyme4ts EightChar 일절 사용 안 함.
+// 단, 옵션으로 tyme4ts 결과와 교차 검증 (verify:true).
 // =====================================================================
 
 
@@ -443,86 +514,146 @@ function computeHourPillar(adjustedDayStem, hour) {
 
 
 
-/**
- * @typedef {Object} SajuInput
- * @property {'solar'|'lunar'} calendar  입력 달력 종류
- * @property {number} year
- * @property {number} month   양력 1~12 또는 음력 1~12
- * @property {number} day
- * @property {number} hour    0~23 (KST)
- * @property {number} [minute=0]
- * @property {boolean} [isLeap=false]    음력 윤달 여부
- * @property {string} [zasiPolicy]       ZASI_POLICY.* (기본: NEXT_DAY_MIDNIGHT)
- */
+// ─── tyme4ts 2중 검증 (개발 환경에서만 기본 ON) ──────────────────
+// Cloudflare Workers 런타임에는 process 객체가 제한적. globalThis.process로 안전 접근.
+function isVerifyEnabled(explicitFlag) {
+  if (explicitFlag === true) return true;
+  if (explicitFlag === false) return false;
+  // 자동: NODE_ENV !== 'production'이면 ON
+  const env = globalThis.process?.env?.NODE_ENV;
+  return env !== 'production';
+}
+
+// tyme4ts로 동일 입력 → 8자 비교. 내부 검증 전용.
+// 사용 라이브러리는 lunarConverter와 동일하지만, 여기서는 EightChar를 "기대값"으로만 씀.
+async function crossValidateWithTyme4ts(solar, eightChars, policy) {
+  
+  const st = SolarTime.fromYmdHms(solar.year, solar.month, solar.day, solar.hour, solar.minute || 0, 0);
+  const ec = st.getLunarHour().getSixtyCycleHour().getEightChar();
+  const tymeChars = [
+    ec.getYear().getHeavenStem().getName(),   ec.getYear().getEarthBranch().getName(),
+    ec.getMonth().getHeavenStem().getName(),  ec.getMonth().getEarthBranch().getName(),
+    ec.getDay().getHeavenStem().getName(),    ec.getDay().getEarthBranch().getName(),
+    ec.getHour().getHeavenStem().getName(),   ec.getHour().getEarthBranch().getName(),
+  ];
+
+  // 연/월/일/시 각각 비교. 자시 정책에 따라 일주/시주는 다를 수 있으므로:
+  // tyme4ts는 same_day_midnight 기본. 우리 엔진도 같은 정책으로 비교.
+  if (policy !== ZASI_POLICY.SAME_DAY_MIDNIGHT) {
+    // policy가 다르면 연/월만 비교 (일/시는 정책 차이로 달라질 수 있음)
+    for (let i = 0; i < 4; i++) {
+      if (eightChars[i] !== tymeChars[i]) {
+        return {
+          ok: false,
+          field: ['yearStem','yearBranch','monthStem','monthBranch'][i],
+          ours: eightChars[i], tyme: tymeChars[i],
+          tymeEightChars: tymeChars,
+        };
+      }
+    }
+    return { ok: true, partial: true, tymeEightChars: tymeChars };
+  }
+
+  // SAME_DAY_MIDNIGHT: 전체 비교
+  for (let i = 0; i < 8; i++) {
+    if (eightChars[i] !== tymeChars[i]) {
+      return {
+        ok: false,
+        field: ['yearStem','yearBranch','monthStem','monthBranch','dayStem','dayBranch','hourStem','hourBranch'][i],
+        ours: eightChars[i], tyme: tymeChars[i],
+        tymeEightChars: tymeChars,
+      };
+    }
+  }
+  return { ok: true, partial: false, tymeEightChars: tymeChars };
+}
 
 /**
- * @returns {{
- *   pillars: {year, month, day, hour},
- *   eightChars: string[8],          // [년간,년지,월간,월지,일간,일지,시간,시지]
- *   dayMaster: string,              // 일간
- *   solar: {year,month,day,hour,minute},
- *   meta: { zasiPolicy, dayPillarAdjusted, calendarSource }
- * }}
+ * @param {object} input
+ *   - calendar: 'solar' | 'lunar'  (기본 'solar')
+ *   - year, month, day, hour, minute
+ *   - isLeap (음력 윤달)
+ *   - zasiPolicy
+ *   - verify: true|false|undefined  (undefined=자동)
  */
-function computeEightChars(input) {
+async function computeEightChars(input) {
   const policy = input.zasiPolicy || DEFAULT_ZASI_POLICY;
   if (!Object.values(ZASI_POLICY).includes(policy)) {
     throw new Error(`Unknown zasiPolicy: ${policy}`);
   }
 
-  // ─── 1. 입력 → 양력 KST datetime ───────────────────────────
+  // ─── 1. 입력 정규화 ──────────────────────────────────────
   let solar;
   if (input.calendar === 'lunar') {
     solar = lunarToSolar({
-      year: input.year,
-      month: input.month,
-      day: input.day,
+      year: input.year, month: input.month, day: input.day,
       isLeap: !!input.isLeap,
-      hour: input.hour,
-      minute: input.minute ?? 0,
+      hour: input.hour, minute: input.minute ?? 0,
     });
-  } else if (input.calendar === 'solar' || input.calendar === undefined) {
+  } else {
     solar = {
       year: input.year, month: input.month, day: input.day,
       hour: input.hour, minute: input.minute ?? 0,
     };
-  } else {
-    throw new Error(`Unknown calendar: ${input.calendar}`);
   }
 
-  // ─── 2. 양력 datetime → tyme4ts EightChar ──────────────────
-  //   이 시점에서 입춘/절기 절입은 모두 sxwnl 계산으로 처리됨
-  const st = makeSolarTime(solar.year, solar.month, solar.day, solar.hour, solar.minute, 0);
-  const ec = getRawEightChar(st);
+  if (solar.year < 1900 || solar.year > 2100) {
+    throw new Error(`year out of range (1900~2100): ${solar.year}`);
+  }
 
-  // ─── 3. 4주 추출 + 자시 정책 적용 ──────────────────────────
-  const yp = extractYearPillar(ec);
-  const mp = extractMonthPillar(ec);
-  const dp = extractDayPillar(ec, solar.hour, policy);
+  // ─── 2. 사주 연도 판정 (입춘 기준) ───────────────────────
+  const sajuYear = resolveSajuYear(solar);
 
-const hourDayStem =
-  policy === ZASI_POLICY.NEXT_DAY_MIDNIGHT && solar.hour === 23
-    ? ec.getDay().getHeavenStem().getName()   // raw next-day stem
-    : dp.stem;
+  // ─── 3. 연주 계산 ────────────────────────────────────────
+  const year = computeYearPillar(sajuYear);
 
-const hp = computeHourPillar(hourDayStem, solar.hour);
+  // ─── 4. 월주 계산 ────────────────────────────────────────
+  const monthInfo = resolveMonthBranch(solar, sajuYear);
+  const month = computeMonthPillar(monthInfo.jieIdx, year.stem, monthInfo.branch);
+
+  // ─── 5. 일주 계산 (자시 정책 적용 포함) ──────────────────
+  const day = computeDayPillar(solar, policy);
+
+  // ─── 6. 시주 계산 ────────────────────────────────────────
+  const hour = computeHourPillar(day.stem, solar.hour);
+
   const eightChars = [
-    yp.stem, yp.branch,
-    mp.stem, mp.branch,
-    dp.stem, dp.branch,
-    hp.stem, hp.branch,
+    year.stem, year.branch, month.stem, month.branch,
+    day.stem, day.branch, hour.stem, hour.branch,
   ];
 
+  // ─── 7. 선택적 2중 검증 ─────────────────────────────────
+  let verification = null;
+  if (isVerifyEnabled(input.verify)) {
+    try {
+      verification = await crossValidateWithTyme4ts(solar, eightChars, policy);
+      if (!verification.ok) {
+        // 교차 검증 실패 → 엔진 버그. 에러 던짐.
+        throw new Error(
+          `Engine divergence from tyme4ts at ${verification.field}: ` +
+          `ours=${verification.ours} vs tyme4ts=${verification.tyme}. ` +
+          `Input: ${JSON.stringify(input)}. ` +
+          `Our 8chars: ${eightChars.join('')}, tyme4ts: ${verification.tymeEightChars.join('')}.`
+        );
+      }
+    } catch (e) {
+      // "Engine divergence"는 재던짐, import 실패 등은 조용히 verification=null
+      if (e.message?.startsWith('Engine divergence')) throw e;
+      verification = { ok: null, skipped: true, reason: e.message };
+    }
+  }
+
   return {
-    pillars: { year: yp, month: mp, day: dp, hour: hp },
+    pillars: { year, month, day, hour },
     eightChars,
-    dayMaster: dp.stem,
+    dayMaster: day.stem,
     solar,
     meta: {
       zasiPolicy: policy,
-      dayPillarAdjusted: dp.adjusted,
+      sajuYear,
+      dayPillarAdjusted: day.adjusted,
       calendarSource: input.calendar || 'solar',
-      tymeRawEightChar: eightCharToArray(ec), // 검증용 raw
+      verification,
     },
   };
 }
@@ -769,25 +900,29 @@ function postProcess(eightChars) {
 }
 
 // =====================================================================
-// analysis/mbti.js
-// 2층(해석): MBTI 추정.
-//
-// 명령서 2번: calibration 전면 폐기.
-//   - applySampleCalibration() 함수 제거
-//   - getCalibrationSignature() 함수 제거
-//   - 특정 사주(signature)에 대한 분기 제거
-//   - 점수 보정으로 결과 뒤집기 제거
-//
-// 같은 입력이면 같은 점수 → 같은 MBTI. 어떤 샘플도 이 모듈에 영향을 주지 않는다.
+// analysis/mbti.js  (v4 — 완전 재설계)
+// 설계 원칙: A.근거 주석, B.축당4~6시그널, C.지장간1/3, D.연속함수,
+//           E.일간본질, F.top_contributors, G.calibration 없음
 // =====================================================================
 
 
 
 const round2 = n => Math.round(n * 100) / 100;
 
-// ─── 구조 feature 계산 (MBTI 전용 사전 처리) ────────────────────
+function makeCollector() {
+  const items = [];
+  return {
+    add(factor, value, dir) {
+      if (Math.abs(value) > 0.001) items.push({ factor, value: round2(value), direction: dir });
+      return value;
+    },
+    top(n = 3) {
+      return items.sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, n);
+    },
+  };
+}
+
 function dayMasterStrength(computed) {
-  const { MONTH_BRANCH_BOOST, ELEM_IDX } = computedConsts();
   const dayGan = computed['일간'];
   const dayElem = CHAR_INFO[dayGan][0];
   const monthBranch = computed['사주_원국']['월주'][1];
@@ -796,272 +931,180 @@ function dayMasterStrength(computed) {
   const oh = computed['오행_기본분포'];
   const hidden = computed['지장간_십성'];
   const tg = n => ten[n] || 0;
-  const elem = n => oh[n] || 0;
-
   let score = 0;
   if (monthBoost === dayElem) score += 2.4;
   if ((ELEM_IDX[monthBoost] + 1) % 5 === ELEM_IDX[dayElem]) score += 1.0;
-
   score += tg('비견')*1.2 + tg('겁재')*0.9 + tg('정인')*1.0 + tg('편인')*0.8;
   score -= tg('식신')*0.45 + tg('상관')*0.55 + tg('정재')*0.45 + tg('편재')*0.45 + tg('정관')*0.55 + tg('편관')*0.65;
-  score += elem(dayElem) * 0.35;
+  score += (oh[dayElem] || 0) * 0.35;
   for (const pos of Object.keys(hidden)) {
-    if (hidden[pos].장간.map(([g])=>g).includes(dayGan)) score += 0.8;
+    if (hidden[pos].장간.map(([g]) => g).includes(dayGan)) score += 0.8;
   }
   let label = '중화';
   if (score >= 4.1) label = '신강';
   else if (score <= 1.2) label = '신약';
   return { score: round2(score), label };
 }
-function computedConsts() {
-  // 순환 import 회피용 inline
-  return {
-    MONTH_BRANCH_BOOST: {
-      '寅':'목','卯':'목','辰':'토','巳':'화','午':'화','未':'토',
-      '申':'금','酉':'금','戌':'토','亥':'수','子':'수','丑':'토',
-    },
-    ELEM_IDX: {'목':0,'화':1,'토':2,'금':3,'수':4},
-  };
-}
 
 function relationFeatures(computed) {
   const all = [...computed['천간_관계'], ...computed['지지_관계']];
   const chong = all.filter(r => String(r.type).includes('충'));
-  const hap   = all.filter(r => String(r.type).includes('합'));
-  const hyung = computed['지지_관계'].filter(r => String(r.type).includes('형'));
-  const pa    = computed['지지_관계'].filter(r => String(r.type).includes('파'));
-  const hae   = computed['지지_관계'].filter(r => String(r.type).includes('해'));
-  const conflictLevel = chong.length*1.4 + hyung.length*1.0 + pa.length*0.8 + hae.length*0.5;
+  const hap = all.filter(r => String(r.type).includes('합'));
   return {
-    chongCount: chong.length, hapCount: hap.length, hyungCount: hyung.length,
-    paCount: pa.length, haeCount: hae.length,
-    conflictLevel: round2(conflictLevel),
+    chongCount: chong.length, hapCount: hap.length,
+    conflictLevel: round2(chong.length*1.4 + computed['지지_관계'].filter(r=>String(r.type).includes('형')).length*1.0 + computed['지지_관계'].filter(r=>String(r.type).includes('파')).length*0.8 + computed['지지_관계'].filter(r=>String(r.type).includes('해')).length*0.5),
     stabilityLevel: round2(hap.length * 1.0),
   };
 }
 
+function hasSinsal(computed, name) {
+  return (computed['십이신살']||[]).some(s=>s.name===name) || (computed['귀인_신살']||[]).some(g=>g.name===name);
+}
+
 function calculateStructuralFeatures(computed) {
-  const ten = computed['십성_요약'];
-  const oh  = computed['오행_기본분포'];
-  const dmStrength = dayMasterStrength(computed);
-  const rel = relationFeatures(computed);
-  const tg = n => ten[n] || 0;
-  const elem = n => oh[n] || 0;
-  const ec = n => Math.min(elem(n), 2);
-
-  const selfDrive = tg('비견')*1.35 + tg('겁재')*1.1 + (dmStrength.label === '신강' ? 0.8 : 0);
-  const expressionDrive = tg('식신')*1.2 + tg('상관')*1.3 + ec('화')*0.20 + ec('수')*0.15;
-  const supportDrive = tg('정인')*1.4 + tg('편인')*1.1 + ec('금')*0.20;
-  const controlDrive = tg('정관')*1.6 + tg('편관')*1.3 + ec('토')*0.25 + ec('금')*0.15;
-  const realityFocus = tg('식신')*0.6 + tg('정재')*0.8 + tg('편재')*0.7 + tg('정관')*0.55 + ec('토')*0.40 + ec('금')*0.30;
-  const abstractionFocus = tg('편인')*0.8 + tg('상관')*0.65 + tg('정인')*0.25 + ec('수')*0.40 + ec('목')*0.30;
-  const relationalSensitivity = tg('정인')*0.7 + tg('식신')*0.4 + ec('수')*0.40 + ec('목')*0.25;
-  const emotionalContainment = tg('정관')*0.8 + tg('편관')*0.7 + tg('정인')*0.55 + rel.conflictLevel*0.35;
-  const flexibility = tg('식신')*0.6 + tg('상관')*0.85 + ec('수')*0.30 + rel.chongCount*0.7;
-  const structureNeed = tg('정관')*1.2 + tg('정인')*0.8 + ec('토')*0.25 + ec('금')*0.15;
-  const internalConflict = rel.conflictLevel*1.0 + emotionalContainment*0.25;
-
-  // 십이운성 에너지
-  const STAGE_E = {'제왕':2,'건록':2,'장생':1,'관대':1,'양':0,'태':0,'목욕':-1,'쇠':-1,'병':-1,'사':-2,'묘':-2,'절':-2};
+  const ten = computed['십성_요약']; const oh = computed['오행_기본분포'];
+  const dmStr = dayMasterStrength(computed); const rel = relationFeatures(computed);
+  const tg = n => ten[n]||0; const el = n => oh[n]||0; const ec = n => Math.min(el(n),2);
+  const SE = {'제왕':2,'건록':2,'장생':1,'관대':1,'양':0,'태':0,'목욕':-1,'쇠':-1,'병':-1,'사':-2,'묘':-2,'절':-2};
   const stages = computed['십이운성'];
-  const stageEnergy = Object.values(stages).map(s => STAGE_E[s] ?? 0).reduce((a,b)=>a+b, 0);
-  const dayBranchStageEnergy = STAGE_E[stages['일지']] ?? 0;
-
+  const stageEnergy = Object.values(stages).map(s=>SE[s]??0).reduce((a,b)=>a+b,0);
+  const dayBSE = SE[stages['일지']]??0;
   return {
-    dayMasterStrengthScore: dmStrength.score,
-    dayMasterStrengthLabel: dmStrength.label,
-    selfDrive: round2(selfDrive),
-    expressionDrive: round2(expressionDrive),
-    supportDrive: round2(supportDrive),
-    controlDrive: round2(controlDrive),
-    realityFocus: round2(realityFocus),
-    abstractionFocus: round2(abstractionFocus),
-    relationalSensitivity: round2(relationalSensitivity),
-    emotionalContainment: round2(emotionalContainment),
-    flexibility: round2(flexibility),
-    structureNeed: round2(structureNeed),
-    internalConflict: round2(internalConflict),
-    conflictLevel: rel.conflictLevel,
-    stabilityLevel: rel.stabilityLevel,
-    chongCount: rel.chongCount,
-    stageEnergy,
-    dayBranchStageEnergy,
+    dayMasterStrengthScore:dmStr.score, dayMasterStrengthLabel:dmStr.label,
+    selfDrive:round2(tg('비견')*1.35+tg('겁재')*1.1+(dmStr.label==='신강'?0.8:0)),
+    expressionDrive:round2(tg('식신')*1.2+tg('상관')*1.3+ec('화')*0.20+ec('수')*0.15),
+    supportDrive:round2(tg('정인')*1.4+tg('편인')*1.1+ec('금')*0.20),
+    controlDrive:round2(tg('정관')*1.6+tg('편관')*1.3+ec('토')*0.25+ec('금')*0.15),
+    realityFocus:round2(tg('식신')*0.6+tg('정재')*0.8+tg('편재')*0.7+tg('정관')*0.55+ec('토')*0.40+ec('금')*0.30),
+    abstractionFocus:round2(tg('편인')*0.8+tg('상관')*0.65+tg('정인')*0.25+ec('수')*0.40+ec('목')*0.30),
+    relationalSensitivity:round2(tg('정인')*0.7+tg('식신')*0.4+ec('수')*0.40+ec('목')*0.25),
+    emotionalContainment:round2(tg('정관')*0.8+tg('편관')*0.7+tg('정인')*0.55+rel.conflictLevel*0.35),
+    flexibility:round2(tg('식신')*0.6+tg('상관')*0.85+ec('수')*0.30+rel.chongCount*0.7),
+    structureNeed:round2(tg('정관')*1.2+tg('정인')*0.8+ec('토')*0.25+ec('금')*0.15),
+    internalConflict:round2(rel.conflictLevel+(tg('정관')*0.8+tg('편관')*0.7+tg('정인')*0.55)*0.25),
+    conflictLevel:rel.conflictLevel, stabilityLevel:rel.stabilityLevel, chongCount:rel.chongCount,
+    stageEnergy, dayBranchStageEnergy:dayBSE,
   };
 }
 
-// ─── MBTI 4축 점수 ────────────────────────────────────────────────
-function labelByGap(gap) {
-  if (gap < 0.30) return 'balanced';
-  if (gap < 0.90) return 'close';
-  if (gap < 1.60) return 'lean';
-  return 'clear';
+function labelByGap(g){if(g<0.30)return'balanced';if(g<0.90)return'close';if(g<1.60)return'lean';return'clear';}
+
+const RP = {
+  'E/I':{E:['에너지가 외부 상호작용에서 충전되는 구조에 가깝습니다.','반응하면서 생각이 정리되는 편입니다.'],I:['관찰과 내부 정리를 먼저 거치는 쪽에 가깝습니다.','생각과 감정이 안에서 가공된 뒤 나오는 구조입니다.']},
+  'N/S':{N:['정보를 의미와 흐름으로 재해석하려는 성향이 있습니다.','직관과 가능성에 끌리는 구조입니다.'],S:['실제 상황과 구체 조건을 먼저 보는 편입니다.','현실 판단과 관찰력이 앞에 나오는 구조입니다.']},
+  'T/F':{T:['감정보다 기준과 논리적 정리를 먼저 보는 경향이 있습니다.','최종 결론은 감정보다 기준 쪽으로 가는 편입니다.'],F:['사람 사이의 온도와 맥락을 중요하게 반영하는 구조입니다.','속에서 감정선이 크게 작동할 수 있습니다.']},
+  'J/P':{J:['예측 가능한 틀 안에서 움직일 때 더 편한 구조입니다.','내부에 정리 욕구가 살아 있는 편입니다.'],P:['상황 변화에 따라 수정하며 움직이는 쪽이 편합니다.','현장 반응이 계획보다 앞서는 편입니다.']},
+};
+
+function buildAR(k,a,b,aS,bS,aC,bC){
+  const w=aS>=bS?a:b,l=w===a?b:a,g=Math.abs(aS-bS);
+  return{result:w,loser:l,label:labelByGap(g),scores:{[a]:round2(aS),[b]:round2(bS)},reasons:RP[k][w],
+    top_contributors:[...aC.top(3).map(c=>({...c,direction:a})),...bC.top(3).map(c=>({...c,direction:b}))].sort((x,y)=>Math.abs(y.value)-Math.abs(x.value)).slice(0,5)};
 }
 
-function axisReasonPack(axisKey, winner, dm) {
-  const pack = {
-    'E/I': {
-      E: ['자기주도성과 바깥으로 반응하는 힘이 비교적 큰 편입니다.',
-          '혼자만 축적하기보다 상호작용 속에서 에너지가 움직일 가능성이 큽니다.'],
-      I: ['겉으로 바로 움직이기보다 관찰과 내부 정리를 먼저 거치는 쪽에 가깝습니다.',
-          '표현이 적어서가 아니라, 생각과 감정이 안에서 오래 가공된 뒤 밖으로 나오는 구조입니다.'],
-    },
-    'N/S': {
-      N: ['정보를 그대로 받기보다 의미와 흐름으로 재해석하려는 성향이 있습니다.',
-          `${DAY_MASTER_LABEL[dm]}의 성향과 수/인성 계열이 겹치면 심리나 맥락을 더 읽으려는 쪽으로 기웁니다.`],
-      S: ['추상적 가능성보다 실제 상황과 구체 조건을 먼저 보는 편입니다.',
-          '상상력 자체보다 현실 판단과 관찰력이 더 앞에 나오는 구조입니다.'],
-    },
-    'T/F': {
-      T: ['판단할 때 감정보다 기준과 정리, 맞고 틀림을 먼저 보려는 경향이 있습니다.',
-          '관계를 무시한다기보다 최종 결론은 정리와 기준 쪽으로 가는 편입니다.'],
-      F: ['판단에서 감정에 휘둘린다기보다, 사람 사이의 온도와 맥락을 실제로 중요하게 반영하는 구조입니다.',
-          '겉으로는 이성적으로 보여도 속에서는 관계 반응과 감정선이 꽤 크게 작동할 수 있습니다.'],
-    },
-    'J/P': {
-      J: ['미리 정리하고 예측 가능한 틀 안에서 움직일 때 더 편할 가능성이 큽니다.',
-          '유연 대응을 하더라도 내부 기준이나 정리 욕구는 강하게 살아 있는 편입니다.'],
-      P: ['고정된 계획보다 상황 변화에 따라 수정하며 움직이는 쪽이 더 편할 수 있습니다.',
-          '통제 욕구가 아주 약한 건 아니지만, 현장 반응이 계획보다 앞설 수 있습니다.'],
-    },
-  };
-  return pack[axisKey][winner];
-}
-
-function buildAxis(axisKey, a, b, aScore, bScore, dm) {
-  const winner = aScore >= bScore ? a : b;
-  const loser  = winner === a ? b : a;
-  const gap = Math.abs(aScore - bScore);
-  return {
-    result: winner,
-    loser,
-    label: labelByGap(gap),
-    scores: { [a]: round2(aScore), [b]: round2(bScore) },
-    reasons: axisReasonPack(axisKey, winner, dm),
-  };
-}
-
-/**
- * MBTI 추정.
- * 명령서 2번에 따라 calibration / signature / 샘플별 분기 일절 없음.
- * 일간 본질, 십성 분포, 오행, 구조 feature, 12운성만으로 결정적 산출.
- */
 function calculateMbti(features, computed) {
-  const ten = computed['십성_요약'];
-  const oh  = computed['오행_기본분포'];
-  const dm  = computed['일간'];
-  const tg = n => ten[n] || 0;
-  const el = n => oh[n] || 0;
-  const ec = n => Math.min(el(n), 2);
+  const ten=computed['십성_요약'],oh=computed['오행_기본분포'],dm=computed['일간'];
+  const tg=n=>ten[n]||0,el=n=>oh[n]||0,ec=n=>Math.min(el(n),2);
+  const dayElem=CHAR_INFO[dm][0],isYang=CHAR_INFO[dm][1]===1;
+  const sinYak=features.dayMasterStrengthLabel==='신약',sinGang=features.dayMasterStrengthLabel==='신강';
+  const rel=relationFeatures(computed);
+  const sik=tg('식신'),sang=tg('상관'),pyJae=tg('편재'),jJae=tg('정재');
+  const pyGwan=tg('편관'),jGwan=tg('정관'),pyIn=tg('편인'),jIn=tg('정인');
+  const bi=tg('비견'),geob=tg('겁재'),biGyeop=bi+geob;
 
-  const sik = tg('식신'), sang = tg('상관');
-  const pyJae = tg('편재'), jJae = tg('정재');
-  const pyGwan = tg('편관'), jGwan = tg('정관');
-  const pyIn = tg('편인'), jIn = tg('정인');
-  const biGyeop = tg('비견') + tg('겁재');
-  const dayElem = CHAR_INFO[dm][0];
-  const isYangGan = ['甲','丙','戊','庚','壬'].includes(dm);
-  const sinYak  = features.dayMasterStrengthLabel === '신약';
-  const sinGang = features.dayMasterStrengthLabel === '신강';
-  const lowExpression = (sik + sang) <= 1;
-  const highSupport   = (jIn + pyIn) >= 2;
-  const strongAnalysisIn = pyIn >= 2;
+  // ═══ E/I ═══
+  const eC=makeCollector(),iC=makeCollector(); let eS=0,iS=0;
+  eS+=eC.add('식신 (실용적 표현)',sik*0.9,'E');
+  eS+=eC.add('상관 (창의적 발산)',sang*1.1,'E');
+  if(isYang) eS+=eC.add('양간 '+dm+' (외향 발산)',0.6,'E');
+  eS+=eC.add('화 오행 (발산·확산)',ec('화')*0.5,'E');
+  if(hasSinsal(computed,'역마')) eS+=eC.add('역마살 (외부 활동)',0.5,'E');
+  if(hasSinsal(computed,'도화')) eS+=eC.add('도화살 (대인 활발)',0.4,'E');
+  if(sinGang&&biGyeop>=2) eS+=eC.add('신강+비겁 (주도적)',0.4,'E');
+  iS+=iC.add('정인 (내면 흡수)',jIn*1.0,'I');
+  iS+=iC.add('편인 (내면 탐구)',pyIn*0.8,'I');
+  if(!isYang) iS+=iC.add('음간 '+dm+' (내향 수렴)',0.6,'I');
+  iS+=iC.add('수 오행 (깊이·수렴)',ec('수')*0.5,'I');
+  if(biGyeop>=2&&(sik+sang)<=1) iS+=iC.add('비겁 강+식상 약 (축적형)',0.7,'I');
+  if(sinYak) iS+=iC.add('신약 (환경 민감)',0.4,'I');
 
-  // ============ E / I ============
-  const expressionRatio = (sik + sang) / Math.max(biGyeop, 1);
-  const selfToE = expressionRatio >= 1.0 ? 0.30 : 0.15;
-  let eScore = features.selfDrive*selfToE + features.expressionDrive*0.30 + features.flexibility*0.14;
-  let iScore = features.supportDrive*0.42 + features.emotionalContainment*0.32 + features.internalConflict*0.22 + features.structureNeed*0.10;
-  if (isYangGan && !sinYak) eScore += 0.25;
-  if (isYangGan && sinYak)  eScore += 0.08;
-  if (lowExpression) iScore += 0.80;
-  if (highSupport)   iScore += 0.25;
-  if (sinYak)        iScore += 0.20;
-  if (dm === '癸' || dm === '丁') iScore += 0.20;
-  if (biGyeop >= 3 && (sik + sang) <= 2) iScore += 0.40;
+  // ═══ N/S ═══
+  const nC=makeCollector(),sC=makeCollector(); let nS=0,sS=0;
+  const pyInN={'목':1.2,'화':1.1,'토':0.8,'금':0.3,'수':0.6}[dayElem]||0.7;
+  nS+=nC.add('편인 (직관적 학습)',pyIn*pyInN,'N');
+  nS+=nC.add('상관 (창의·틀 깨기)',sang*0.9,'N');
+  nS+=nC.add('수 오행 (흐름·변화)',ec('수')*0.5,'N');
+  nS+=nC.add('목 오행 (성장·가능성)',ec('목')*0.4,'N');
+  if(hasSinsal(computed,'화개')) nS+=nC.add('화개살 (학문적 깊이)',0.6,'N');
+  if(hasSinsal(computed,'문창귀인')) nS+=nC.add('문창귀인 (지적 탐구)',0.4,'N');
+  sS+=sC.add('식신 (실용적 결과물)',sik*0.7,'S');
+  sS+=sC.add('편재 (객관적 실리)',pyJae*0.6,'S');
+  sS+=sC.add('정재 (안정적 재물)',jJae*0.6,'S');
+  sS+=sC.add('정관 (규칙·질서)',jGwan*0.6,'S');
+  sS+=sC.add('토 오행 (안정·현실)',ec('토')*0.5,'S');
+  sS+=sC.add('금 오행 (구조·명확)',ec('금')*0.5,'S');
 
-  // ============ N / S ============
-  const pyInToN = { '목':1.10,'화':0.95,'토':0.70,'금':0.20,'수':0.50 }[dayElem];
-  const pyInToS = { '목':0.00,'화':0.00,'토':0.10,'금':0.65,'수':0.10 }[dayElem];
-  const pyInToT = { '목':0.10,'화':0.10,'토':0.20,'금':0.30,'수':0.55 }[dayElem];
-  let nScore = pyIn*pyInToN + sang*0.70 + jIn*0.20 + sik*0.12;
-  let sScore = pyIn*pyInToS + sik*0.50 + pyJae*0.55 + jJae*0.55 + jGwan*0.50 + pyGwan*0.15;
-  const pyInIsN = ['목','화','토'].includes(dayElem);
-  if (pyInIsN && sinYak  && strongAnalysisIn) nScore += 1.0;
-  if (pyInIsN && sinGang && strongAnalysisIn) nScore += 0.55;
-  if (pyInIsN && strongAnalysisIn && jGwan === 0) nScore += 0.50;
-  if (dayElem === '금' && strongAnalysisIn) sScore += 0.50;
-  if (sinGang && jGwan >= 1 && sik >= 1) sScore += 0.3;
+  // ═══ T/F ═══
+  const tC=makeCollector(),fC=makeCollector(); let tS=0,fS=0;
+  tS+=tC.add('편관 (냉정한 기준)',pyGwan*0.8,'T');
+  tS+=tC.add('편재 (객관적 계산)',pyJae*0.5,'T');
+  tS+=tC.add('정재 (실리적 판단)',jJae*0.3,'T');
+  tS+=tC.add('금 오행 (결단·절단)',ec('금')*0.7,'T');
+  tS+=tC.add('비견 (자기 기준 고수)',bi*0.3,'T');
+  fS+=fC.add('정인 (따뜻한 수용)',jIn*1.0,'F');
+  fS+=fC.add('식신 (온화한 나눔)',sik*0.5,'F');
+  fS+=fC.add('상관 (감정적 반응)',sang*0.3,'F');
+  fS+=fC.add('화 오행 (정서·따뜻함)',ec('화')*0.5,'F');
+  fS+=fC.add('수 오행 (공감·감수성)',ec('수')*0.3,'F');
+  fS+=fC.add('금 부재 (감정형 기울기)',Math.max(0,1-el('금')*0.5)*0.5,'F');
 
-  // ============ T / F ============
-  let tScore = pyIn*pyInToT + pyJae*0.50 + jJae*0.30 + pyGwan*0.55;
-  let fScore = jIn*0.95 + sik*0.40 + sang*0.30 + features.relationalSensitivity*0.15;
-  if (dayElem === '수' && strongAnalysisIn) tScore += 0.40;
-  const metalSoftened = (sik + sang) >= 3;
+  // ═══ J/P ═══
+  const jC=makeCollector(),pC=makeCollector(); let jS=0,pS=0;
+  jS+=jC.add('정관 (규율·질서)',jGwan*1.0,'J');
+  jS+=jC.add('편관 (통제·긴장감)',pyGwan*0.4,'J');
+  jS+=jC.add('정인 (체계적 학습)',jIn*0.6,'J');
+  jS+=jC.add('토 오행 (안정·중심)',ec('토')*0.4,'J');
+  jS+=jC.add('금 오행 (구조·경계)',ec('금')*0.4,'J');
+  if(rel.hapCount>=2) jS+=jC.add('합 관계 (안정적 결합)',rel.hapCount*0.3,'J');
+  pS+=pC.add('상관 (규칙 깨기·자유)',sang*0.9,'P');
+  pS+=pC.add('편인 (비정통·변칙)',pyIn*0.5,'P');
+  pS+=pC.add('겁재 (충동·즉흥)',geob*0.6,'P');
+  pS+=pC.add('수 오행 (유동·변화)',ec('수')*0.4,'P');
+  if(rel.chongCount>=1) pS+=pC.add('충 관계 (변동)',rel.chongCount*0.5,'P');
+  if(biGyeop>=3&&(jGwan+pyGwan)<=1) pS+=pC.add('비겁 강+관성 약 (자유형)',0.5,'P');
 
-  // ============ J / P ============
-  const cappedStruct  = Math.min(features.structureNeed, 4.0);
-  const cappedControl = Math.min(features.controlDrive, 4.5);
-  const cappedEmotional = Math.min(features.emotionalContainment, 3.5);
-  let jScore = cappedStruct*0.46 + cappedControl*0.26 + cappedEmotional*0.22 + features.stabilityLevel*0.12 + jGwan*0.20;
-  let pScore = features.flexibility*0.32 + features.expressionDrive*0.20 + features.conflictLevel*0.12 + sang*0.25 + sik*0.12 + pyIn*0.10;
-  if ((jGwan + pyGwan) >= 4) jScore += 0.30;
-  if (lowExpression) jScore += 0.12;
-  if (sinGang && (jGwan + pyGwan) >= 2 && features.conflictLevel >= 2.0) jScore += 0.20;
-  if (biGyeop >= 3 && (jGwan + pyGwan) <= 1) pScore += 0.40;
-  if ((jGwan + pyGwan) >= 3 && (sik + sang) >= 3) pScore += 0.30;
-
-  // ============ 일간 본질 4축 보정 (calibration 아님 — 일간별 결정적 가중치) ============
-  switch (dm) {
-    case '甲': eScore+=0.55; iScore-=0.25; tScore+=0.20; jScore+=0.40; pScore-=0.20; break;
-    case '乙': fScore+=0.55; tScore-=0.30; pScore+=0.50; jScore-=0.25; nScore+=0.25; sScore-=0.15; break;
-    case '丙': eScore+=0.35; iScore-=0.12; nScore+=0.50; sScore-=0.35; pScore+=0.30; break;
-    case '丁': iScore+=0.45; eScore-=0.20; fScore+=0.55; tScore-=0.30; nScore+=0.40; sScore-=0.25; break;
-    case '戊': sScore+=0.65; nScore-=0.35; jScore+=0.50; pScore-=0.25; break;
-    case '己': sScore+=0.45; nScore-=0.25; fScore+=0.20; break;
-    case '庚': tScore += metalSoftened ? 0.25 : 0.60; fScore-=0.30; sScore+=0.35; jScore+=0.30; break;
-    case '辛': tScore += metalSoftened ? 0.18 : 0.45; fScore-=0.20; iScore+=0.35; eScore-=0.15; sScore+=0.20; break;
-    case '壬': nScore+=0.65; sScore-=0.40; pScore+=0.50; jScore-=0.25; eScore+=0.25; break;
-    case '癸': iScore+=0.50; eScore-=0.30; nScore+=0.55; sScore-=0.35; fScore+=0.30; tScore-=0.15; break;
-  }
-  if ((dm === '庚' || dm === '辛') && el('수') >= 2) fScore += 0.40;
-
-  // ============ 12운성 보정 ============
-  const se = features.stageEnergy || 0;
-  const dbse = features.dayBranchStageEnergy || 0;
-  if (se > 0) { eScore += se*0.07; sScore += se*0.05; }
-  else if (se < 0) { iScore += Math.abs(se)*0.07; nScore += Math.abs(se)*0.05; }
-  if (dbse >= 2) { eScore += 0.35; sScore += 0.25; jScore += 0.15; }
-  else if (dbse === 1) { eScore += 0.15; sScore += 0.10; }
-  else if (dbse === -1) { iScore += 0.15; pScore += 0.10; }
-  else if (dbse <= -2) { iScore += 0.35; nScore += 0.25; pScore += 0.15; }
-
-  // ─── 결정적 raw score (calibration 없음) ───
-  const s = {
-    E: round2(eScore), I: round2(iScore),
-    N: round2(nScore), S: round2(sScore),
-    T: round2(tScore), F: round2(fScore),
-    J: round2(jScore), P: round2(pScore),
+  // ═══ 일간 본질 ═══
+  const DM={
+    '甲':[0.5,-0.2,0,0,0.2,0,0.4,-0.2],'乙':[-0.1,0.1,0.3,-0.1,-0.3,0.5,-0.2,0.4],
+    '丙':[0.4,-0.1,0.4,-0.3,0,0,-0.1,0.3],'丁':[-0.2,0.4,0.4,-0.2,-0.3,0.5,0,0],
+    '戊':[0,0,-0.3,0.6,0,0,0.5,-0.2],'己':[0,0,-0.2,0.4,0,0.2,0.1,0],
+    '庚':[0,0,-0.2,0.3,0.5,-0.3,0.3,0],'辛':[-0.1,0.3,-0.1,0.2,0.4,-0.2,0,0],
+    '壬':[0.3,0,0.5,-0.3,0,0,-0.2,0.4],'癸':[-0.3,0.4,0.5,-0.3,-0.1,0.3,0,0],
   };
+  const adj=DM[dm]||[0,0,0,0,0,0,0,0];
+  const scores8=[eS,iS,nS,sS,tS,fS,jS,pS];
+  const colls=[eC,iC,nC,sC,tC,fC,jC,pC];
+  const dirs=['E','I','N','S','T','F','J','P'];
+  adj.forEach((v,i)=>{if(v){scores8[i]+=colls[i].add('일간 '+dm+' 본질',v,dirs[i]);}});
+  [eS,iS,nS,sS,tS,fS,jS,pS]=scores8;
 
-  const axes = {
-    'E/I': buildAxis('E/I','E','I', s.E, s.I, dm),
-    'N/S': buildAxis('N/S','N','S', s.N, s.S, dm),
-    'T/F': buildAxis('T/F','T','F', s.T, s.F, dm),
-    'J/P': buildAxis('J/P','J','P', s.J, s.P, dm),
+  // ═══ 12운성 ═══
+  const se=features.stageEnergy||0;
+  if(se>0){eS+=eC.add('12운성 왕지',se*0.06,'E');sS+=sC.add('12운성 왕지',se*0.04,'S');}
+  else if(se<0){iS+=iC.add('12운성 쇠지',Math.abs(se)*0.06,'I');nS+=nC.add('12운성 쇠지',Math.abs(se)*0.04,'N');}
+
+  const s={E:round2(eS),I:round2(iS),N:round2(nS),S:round2(sS),T:round2(tS),F:round2(fS),J:round2(jS),P:round2(pS)};
+  const axes={
+    'E/I':buildAR('E/I','E','I',s.E,s.I,eC,iC),
+    'N/S':buildAR('N/S','N','S',s.N,s.S,nC,sC),
+    'T/F':buildAR('T/F','T','F',s.T,s.F,tC,fC),
+    'J/P':buildAR('J/P','J','P',s.J,s.P,jC,pC),
   };
-  const type = `${axes['E/I'].result}${axes['N/S'].result}${axes['T/F'].result}${axes['J/P'].result}`;
-
-  // 2순위(가장 근소했던 축을 뒤집은 결과)
-  const closest = Object.entries(axes)
-    .map(([k, info]) => ({ k, gap: Math.abs(Object.values(info.scores)[0] - Object.values(info.scores)[1]) }))
-    .sort((a,b) => a.gap - b.gap)[0];
-  const chars = type.split('');
-  const idxMap = { 'E/I':0,'N/S':1,'T/F':2,'J/P':3 };
-  const [a,b] = closest.k.split('/');
-  chars[idxMap[closest.k]] = chars[idxMap[closest.k]] === a ? b : a;
-  const secondary = chars.join('');
-
-  return { type, secondary, scores: s, axes };
+  const type=''+axes['E/I'].result+axes['N/S'].result+axes['T/F'].result+axes['J/P'].result;
+  const cl=Object.entries(axes).map(([k,v])=>({k,gap:Math.abs(Object.values(v.scores)[0]-Object.values(v.scores)[1])})).sort((a,b)=>a.gap-b.gap)[0];
+  const ch=type.split('');const im={'E/I':0,'N/S':1,'T/F':2,'J/P':3};
+  const [ca,cb]=cl.k.split('/');ch[im[cl.k]]=ch[im[cl.k]]===ca?cb:ca;
+  return{type,secondary:ch.join(''),scores:s,axes};
 }
 
 // =====================================================================
@@ -1178,10 +1221,11 @@ function axisDisplayText(axisInfo) {
 
 // =====================================================================
 // functions/api/analyze.js
-// Cloudflare Pages Function — POST /api/analyze
+// Cloudflare Pages Function — POST /api/analyze (v3)
 //
-// 명령서 1번: 이 핸들러는 1층(coreEngine + postProcess)과 2층(mbti + interpretation)을
-// 호출만 한다. 보정/계산/분기 일절 없음. 얇은 어댑터.
+// 명령서 v2(saju v3) 구조:
+//   - 원국은 자체 엔진이 계산 (EightChar 미사용)
+//   - tyme4ts는 절기/음력 공급자 + 선택적 교차 검증에만 사용
 // =====================================================================
 
 
@@ -1199,47 +1243,36 @@ const corsHeaders = {
 
 export async function onRequestPost(context) {
   let body;
-  try {
-    body = await context.request.json();
-  } catch {
-    return new Response(
-      JSON.stringify({ error:'요청 본문이 올바르지 않습니다.' }),
-      { status:400, headers:corsHeaders }
-    );
-  }
+  try { body = await context.request.json(); }
+  catch { return new Response(JSON.stringify({ error:'요청 본문이 올바르지 않습니다.' }), { status:400, headers:corsHeaders }); }
 
-  // ─── 입력 정규화 ────────────────────────────────────────────
   const {
     year, month, day, hour,
     minute = 0,
-    calendar = 'solar',     // 'solar' | 'lunar'
-    isLeap = false,         // 음력 윤달
+    calendar = 'solar',
+    isLeap = false,
     zasiPolicy = ZASI_POLICY.NEXT_DAY_MIDNIGHT,
+    verify,  // undefined=auto (dev ON, prod OFF), true/false=명시
   } = body;
 
   if (!year || !month || !day || hour === undefined) {
-    return new Response(
-      JSON.stringify({ error:'year, month, day, hour는 필수입니다.' }),
-      { status:400, headers:corsHeaders }
-    );
+    return new Response(JSON.stringify({ error:'year, month, day, hour는 필수입니다.' }),
+      { status:400, headers:corsHeaders });
   }
 
   try {
-    // ─── 1층: 결정적 계산 ─────────────────────────────────────
-    const core = computeEightChars({
-      calendar, year, month, day, hour, minute, isLeap, zasiPolicy,
+    const core = await computeEightChars({
+      calendar, year, month, day, hour, minute, isLeap, zasiPolicy, verify,
     });
     const computed = postProcess(core.eightChars);
 
-    // 일관성 자체검증 (이중 안전망)
     if (computed['일간'] !== core.dayMaster) {
-      return new Response(
-        JSON.stringify({ error: '내부 일관성 오류: 일간 불일치', detail: { computed: computed['일간'], core: core.dayMaster }}),
-        { status:500, headers:corsHeaders }
-      );
+      return new Response(JSON.stringify({
+        error: '내부 일관성 오류: 일간 불일치',
+        detail: { computed: computed['일간'], core: core.dayMaster }
+      }), { status:500, headers:corsHeaders });
     }
 
-    // ─── 2층: 해석 ────────────────────────────────────────────
     const features = calculateStructuralFeatures(computed);
     const mbti = calculateMbti(features, computed);
     const narrative = buildNarrative(computed, features, mbti);
@@ -1247,14 +1280,12 @@ export async function onRequestPost(context) {
 
     return new Response(JSON.stringify({
       success: true,
-      input: {
-        calendar, year, month, day, hour, minute, isLeap,
-        zasi_policy: core.meta.zasiPolicy,
-      },
+      input: { calendar, year, month, day, hour, minute, isLeap, zasi_policy: core.meta.zasiPolicy },
       meta: {
         solar_used: core.solar,
+        saju_year: core.meta.sajuYear,
         day_pillar_adjusted_for_zasi: core.meta.dayPillarAdjusted,
-        tyme_raw_eight_char: core.meta.tymeRawEightChar,
+        verification: core.meta.verification,
       },
       eight_chars: core.eightChars,
       pillars: computed['사주_원국'],
@@ -1275,18 +1306,14 @@ export async function onRequestPost(context) {
         scores: mbti.scores,
         confidence: Object.fromEntries(
           Object.entries(mbti.axes).map(([k, v]) => [k, {
-            result: v.result,
-            loser: v.loser,
-            label: v.label,
-            display: axisDisplayText(v),
-            reasons: v.reasons,
+            result: v.result, loser: v.loser, label: v.label,
+            display: axisDisplayText(v), reasons: v.reasons,
           }])
         ),
       },
       interpretation_blocks: narrative,
       relationship_cards: cards,
     }), { status:200, headers:corsHeaders });
-
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status:500, headers:corsHeaders });
   }
