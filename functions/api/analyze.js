@@ -961,152 +961,289 @@ function hasSinsal(computed, name) {
   return (computed['십이신살']||[]).some(s=>s.name===name) || (computed['귀인_신살']||[]).some(g=>g.name===name);
 }
 
-function calculateStructuralFeatures(computed) {
-  const ten = computed['십성_요약']; const oh = computed['오행_기본분포'];
-  const dmStr = dayMasterStrength(computed); const rel = relationFeatures(computed);
-  const tg = n => ten[n]||0; const el = n => oh[n]||0; const ec = n => Math.min(el(n),2);
-  const SE = {'제왕':2,'건록':2,'장생':1,'관대':1,'양':0,'태':0,'목욕':-1,'쇠':-1,'병':-1,'사':-2,'묘':-2,'절':-2};
-  const stages = computed['십이운성'];
-  const stageEnergy = Object.values(stages).map(s=>SE[s]??0).reduce((a,b)=>a+b,0);
-  const dayBSE = SE[stages['일지']]??0;
+// =====================================================================
+// analysis/mbti.js  (trait-based refactor v1)
+// 전제:
+// - 아래 함수들은 기존 파일에 이미 있다고 가정:
+//   round2, makeCollector, dayMasterStrength, relationFeatures,
+//   hasSinsal, buildAR, RP, CHAR_INFO
+// =====================================================================
+
+function getDayMasterTraitBias(dayMaster) {
+  const map = {
+    '甲': { autonomy: 0.25, outwardExpression: 0.15, structurePreference: 0.10 },
+    '乙': { internalProcessing: 0.20, relationalEmpathy: 0.20, abstractInterpretation: 0.10 },
+    '丙': { outwardExpression: 0.30, relationalEmpathy: 0.10, adaptiveFlexibility: 0.05 },
+    '丁': { internalProcessing: 0.20, relationalEmpathy: 0.25, abstractInterpretation: 0.10 },
+    '戊': { concretePracticality: 0.30, structurePreference: 0.25, impersonalJudgment: 0.10 },
+    '己': { concretePracticality: 0.20, relationalEmpathy: 0.15, structurePreference: 0.20 },
+    '庚': { impersonalJudgment: 0.30, autonomy: 0.15, structurePreference: 0.15 },
+    '辛': { internalProcessing: 0.15, impersonalJudgment: 0.25, structurePreference: 0.10 },
+    '壬': { adaptiveFlexibility: 0.25, abstractInterpretation: 0.20, outwardExpression: 0.10 },
+    '癸': { internalProcessing: 0.30, abstractInterpretation: 0.20, relationalEmpathy: 0.10 },
+  };
+  return map[dayMaster] || {};
+}
+
+function sumStageEnergy(computed) {
+  const SE = {
+    '제왕': 2, '건록': 2, '장생': 1, '관대': 1,
+    '양': 0, '태': 0,
+    '목욕': -1, '쇠': -1, '병': -1,
+    '사': -2, '묘': -2, '절': -2,
+  };
+  const stages = computed['십이운성'] || {};
+  const total = Object.values(stages).reduce((acc, s) => acc + (SE[s] ?? 0), 0);
+  const dayBranchStageEnergy = SE[stages['일지']] ?? 0;
+  return { stageEnergy: round2(total), dayBranchStageEnergy };
+}
+
+function extractSajuTraits(computed) {
+  const ten = computed['십성_요약'] || {};
+  const oh = computed['오행_기본분포'] || {};
+  const tg = name => Number(ten[name] || 0);
+  const el = name => Number(oh[name] || 0);
+
+  const dayMaster = computed['일간'];
+  const isYang = CHAR_INFO[dayMaster]?.[1] === 1;
+
+  const dm = dayMasterStrength(computed);
+  const rel = relationFeatures(computed);
+  const { stageEnergy, dayBranchStageEnergy } = sumStageEnergy(computed);
+
+  const traits = {
+    // 안으로 처리하는 경향
+    internalProcessing: round2(
+      tg('정인') * 1.20 +
+      tg('편인') * 0.95 +
+      el('수') * 0.45 +
+      (!isYang ? 0.35 : 0) +
+      (dm.label === '신약' ? 0.25 : 0)
+    ),
+
+    // 밖으로 드러내는 경향
+    outwardExpression: round2(
+      tg('식신') * 1.10 +
+      tg('상관') * 1.15 +
+      el('화') * 0.45 +
+      (isYang ? 0.30 : 0) +
+      (hasSinsal(computed, '역마') ? 0.25 : 0) +
+      (hasSinsal(computed, '도화') ? 0.20 : 0)
+    ),
+
+    // 의미·해석·가능성 쪽
+    abstractInterpretation: round2(
+      tg('편인') * 1.00 +
+      tg('상관') * 0.70 +
+      tg('정인') * 0.35 +
+      el('수') * 0.35 +
+      el('목') * 0.30 +
+      (hasSinsal(computed, '화개') ? 0.25 : 0) +
+      (hasSinsal(computed, '문창귀인') ? 0.20 : 0)
+    ),
+
+    // 현실·구체·실용 쪽
+    concretePracticality: round2(
+      tg('식신') * 0.85 +
+      tg('정재') * 0.90 +
+      tg('편재') * 0.75 +
+      tg('정관') * 0.65 +
+      el('토') * 0.40 +
+      el('금') * 0.35
+    ),
+
+    // 기준·논리·절단력
+    impersonalJudgment: round2(
+      tg('정관') * 0.95 +
+      tg('편관') * 0.85 +
+      tg('편재') * 0.50 +
+      tg('정재') * 0.35 +
+      el('금') * 0.50 +
+      tg('비견') * 0.15
+    ),
+
+    // 공감·정서 반영
+    relationalEmpathy: round2(
+      tg('정인') * 1.00 +
+      tg('식신') * 0.55 +
+      el('수') * 0.35 +
+      el('목') * 0.30 +
+      (hasSinsal(computed, '도화') ? 0.15 : 0)
+    ),
+
+    // 구조·예측 가능성 선호
+    structurePreference: round2(
+      tg('정관') * 1.05 +
+      tg('정인') * 0.75 +
+      el('토') * 0.35 +
+      el('금') * 0.25 +
+      rel.hapCount * 0.20
+    ),
+
+    // 변화·즉흥·수정 대응
+    adaptiveFlexibility: round2(
+      tg('상관') * 0.90 +
+      tg('편인') * 0.55 +
+      tg('겁재') * 0.55 +
+      el('수') * 0.40 +
+      rel.chongCount * 0.35
+    ),
+
+    // 자기 기준·자기 추진
+    autonomy: round2(
+      tg('비견') * 0.95 +
+      tg('겁재') * 0.80 +
+      (dm.label === '신강' ? 0.35 : 0)
+    ),
+
+    // 내적 긴장·압박
+    emotionalPressure: round2(
+      rel.conflictLevel * 0.90 +
+      tg('정관') * 0.35 +
+      tg('편관') * 0.35 +
+      tg('정인') * 0.20
+    ),
+  };
+
+  // 일간 본질 보정은 trait 단계에서만 아주 작게 반영
+  const bias = getDayMasterTraitBias(dayMaster);
+  for (const [k, v] of Object.entries(bias)) {
+    traits[k] = round2((traits[k] || 0) + v);
+  }
+
   return {
-    dayMasterStrengthScore:dmStr.score, dayMasterStrengthLabel:dmStr.label,
-    selfDrive:round2(tg('비견')*1.35+tg('겁재')*1.1+(dmStr.label==='신강'?0.8:0)),
-    expressionDrive:round2(tg('식신')*1.2+tg('상관')*1.3+ec('화')*0.20+ec('수')*0.15),
-    supportDrive:round2(tg('정인')*1.4+tg('편인')*1.1+ec('금')*0.20),
-    controlDrive:round2(tg('정관')*1.6+tg('편관')*1.3+ec('토')*0.25+ec('금')*0.15),
-    realityFocus:round2(tg('식신')*0.6+tg('정재')*0.8+tg('편재')*0.7+tg('정관')*0.55+ec('토')*0.40+ec('금')*0.30),
-    abstractionFocus:round2(tg('편인')*0.8+tg('상관')*0.65+tg('정인')*0.25+ec('수')*0.40+ec('목')*0.30),
-    relationalSensitivity:round2(tg('정인')*0.7+tg('식신')*0.4+ec('수')*0.40+ec('목')*0.25),
-    emotionalContainment:round2(tg('정관')*0.8+tg('편관')*0.7+tg('정인')*0.55+rel.conflictLevel*0.35),
-    flexibility:round2(tg('식신')*0.6+tg('상관')*0.85+ec('수')*0.30+rel.chongCount*0.7),
-    structureNeed:round2(tg('정관')*1.2+tg('정인')*0.8+ec('토')*0.25+ec('금')*0.15),
-    internalConflict:round2(rel.conflictLevel+(tg('정관')*0.8+tg('편관')*0.7+tg('정인')*0.55)*0.25),
-    conflictLevel:rel.conflictLevel, stabilityLevel:rel.stabilityLevel, chongCount:rel.chongCount,
-    stageEnergy, dayBranchStageEnergy:dayBSE,
+    ...traits,
+    dayMasterStrengthScore: dm.score,
+    dayMasterStrengthLabel: dm.label,
+    conflictLevel: rel.conflictLevel,
+    stabilityLevel: rel.stabilityLevel,
+    chongCount: rel.chongCount,
+    stageEnergy,
+    dayBranchStageEnergy,
   };
 }
 
-function labelByGap(g){if(g<0.30)return'balanced';if(g<0.90)return'close';if(g<1.60)return'lean';return'clear';}
+// narrative 호환용.
+// 핵심은 raw computed를 다시 많이 쓰지 않고 traits를 재가공해 반환하는 것.
+function calculateStructuralFeatures(computed) {
+  const traits = extractSajuTraits(computed);
 
-const RP = {
-  'E/I':{E:['에너지가 외부 상호작용에서 충전되는 구조에 가깝습니다.','반응하면서 생각이 정리되는 편입니다.'],I:['관찰과 내부 정리를 먼저 거치는 쪽에 가깝습니다.','생각과 감정이 안에서 가공된 뒤 나오는 구조입니다.']},
-  'N/S':{N:['정보를 의미와 흐름으로 재해석하려는 성향이 있습니다.','직관과 가능성에 끌리는 구조입니다.'],S:['실제 상황과 구체 조건을 먼저 보는 편입니다.','현실 판단과 관찰력이 앞에 나오는 구조입니다.']},
-  'T/F':{T:['감정보다 기준과 논리적 정리를 먼저 보는 경향이 있습니다.','최종 결론은 감정보다 기준 쪽으로 가는 편입니다.'],F:['사람 사이의 온도와 맥락을 중요하게 반영하는 구조입니다.','속에서 감정선이 크게 작동할 수 있습니다.']},
-  'J/P':{J:['예측 가능한 틀 안에서 움직일 때 더 편한 구조입니다.','내부에 정리 욕구가 살아 있는 편입니다.'],P:['상황 변화에 따라 수정하며 움직이는 쪽이 편합니다.','현장 반응이 계획보다 앞서는 편입니다.']},
-};
+  return {
+    dayMasterStrengthScore: traits.dayMasterStrengthScore,
+    dayMasterStrengthLabel: traits.dayMasterStrengthLabel,
 
-function buildAR(k,a,b,aS,bS,aC,bC){
-  const w=aS>=bS?a:b,l=w===a?b:a,g=Math.abs(aS-bS);
-  return{result:w,loser:l,label:labelByGap(g),scores:{[a]:round2(aS),[b]:round2(bS)},reasons:RP[k][w],
-    top_contributors:[...aC.top(3).map(c=>({...c,direction:a})),...bC.top(3).map(c=>({...c,direction:b}))].sort((x,y)=>Math.abs(y.value)-Math.abs(x.value)).slice(0,5)};
+    selfDrive: round2(traits.autonomy + traits.outwardExpression * 0.25),
+    expressionDrive: traits.outwardExpression,
+    supportDrive: round2(traits.internalProcessing + traits.relationalEmpathy * 0.25),
+    controlDrive: round2(traits.impersonalJudgment + traits.structurePreference * 0.20),
+
+    realityFocus: traits.concretePracticality,
+    abstractionFocus: traits.abstractInterpretation,
+    relationalSensitivity: traits.relationalEmpathy,
+    emotionalContainment: round2(traits.internalProcessing + traits.structurePreference * 0.20),
+    flexibility: traits.adaptiveFlexibility,
+    structureNeed: traits.structurePreference,
+    internalConflict: traits.emotionalPressure,
+
+    conflictLevel: traits.conflictLevel,
+    stabilityLevel: traits.stabilityLevel,
+    chongCount: traits.chongCount,
+    stageEnergy: traits.stageEnergy,
+    dayBranchStageEnergy: traits.dayBranchStageEnergy,
+
+    // 추가
+    traits,
+  };
 }
 
 function calculateMbti(features, computed) {
-  const ten=computed['십성_요약'],oh=computed['오행_기본분포'],dm=computed['일간'];
-  const tg=n=>ten[n]||0,el=n=>oh[n]||0,ec=n=>Math.min(el(n),2);
-  const dayElem=CHAR_INFO[dm][0],isYang=CHAR_INFO[dm][1]===1;
-  const sinYak=features.dayMasterStrengthLabel==='신약',sinGang=features.dayMasterStrengthLabel==='신강';
-  const rel=relationFeatures(computed);
-  const sik=tg('식신'),sang=tg('상관'),pyJae=tg('편재'),jJae=tg('정재');
-  const pyGwan=tg('편관'),jGwan=tg('정관'),pyIn=tg('편인'),jIn=tg('정인');
-  const bi=tg('비견'),geob=tg('겁재'),biGyeop=bi+geob;
+  const traits = features?.traits || extractSajuTraits(computed);
 
-  // ═══ E/I ═══
-  const eC=makeCollector(),iC=makeCollector(); let eS=0,iS=0;
-  eS+=eC.add('식신 (실용적 표현)',sik*0.9,'E');
-  eS+=eC.add('상관 (창의적 발산)',sang*1.1,'E');
-  if(isYang) eS+=eC.add('양간 '+dm+' (외향 발산)',0.6,'E');
-  eS+=eC.add('화 오행 (발산·확산)',ec('화')*0.5,'E');
-  if(hasSinsal(computed,'역마')) eS+=eC.add('역마살 (외부 활동)',0.5,'E');
-  if(hasSinsal(computed,'도화')) eS+=eC.add('도화살 (대인 활발)',0.4,'E');
-  if(sinGang&&biGyeop>=2) eS+=eC.add('신강+비겁 (주도적)',0.4,'E');
-  iS+=iC.add('정인 (내면 흡수)',jIn*1.0,'I');
-  iS+=iC.add('편인 (내면 탐구)',pyIn*0.8,'I');
-  if(!isYang) iS+=iC.add('음간 '+dm+' (내향 수렴)',0.6,'I');
-  iS+=iC.add('수 오행 (깊이·수렴)',ec('수')*0.5,'I');
-  if(biGyeop>=2&&(sik+sang)<=1) iS+=iC.add('비겁 강+식상 약 (축적형)',0.7,'I');
-  if(sinYak) iS+=iC.add('신약 (환경 민감)',0.4,'I');
+  const eC = makeCollector(), iC = makeCollector();
+  const nC = makeCollector(), sC = makeCollector();
+  const tC = makeCollector(), fC = makeCollector();
+  const jC = makeCollector(), pC = makeCollector();
 
-  // ═══ N/S ═══
-  const nC=makeCollector(),sC=makeCollector(); let nS=0,sS=0;
-  const pyInN={'목':1.2,'화':1.1,'토':0.8,'금':0.3,'수':0.6}[dayElem]||0.7;
-  nS+=nC.add('편인 (직관적 학습)',pyIn*pyInN,'N');
-  nS+=nC.add('상관 (창의·틀 깨기)',sang*0.9,'N');
-  nS+=nC.add('수 오행 (흐름·변화)',ec('수')*0.5,'N');
-  nS+=nC.add('목 오행 (성장·가능성)',ec('목')*0.4,'N');
-  if(hasSinsal(computed,'화개')) nS+=nC.add('화개살 (학문적 깊이)',0.6,'N');
-  if(hasSinsal(computed,'문창귀인')) nS+=nC.add('문창귀인 (지적 탐구)',0.4,'N');
-  sS+=sC.add('식신 (실용적 결과물)',sik*0.7,'S');
-  sS+=sC.add('편재 (객관적 실리)',pyJae*0.6,'S');
-  sS+=sC.add('정재 (안정적 재물)',jJae*0.6,'S');
-  sS+=sC.add('정관 (규칙·질서)',jGwan*0.6,'S');
-  sS+=sC.add('토 오행 (안정·현실)',ec('토')*0.5,'S');
-  sS+=sC.add('금 오행 (구조·명확)',ec('금')*0.5,'S');
+  let eS = 0, iS = 0, nS = 0, sS = 0, tS = 0, fS = 0, jS = 0, pS = 0;
 
-  // ═══ T/F ═══
-  const tC=makeCollector(),fC=makeCollector(); let tS=0,fS=0;
-  tS+=tC.add('편관 (냉정한 기준)',pyGwan*0.8,'T');
-  tS+=tC.add('편재 (객관적 계산)',pyJae*0.5,'T');
-  tS+=tC.add('정재 (실리적 판단)',jJae*0.3,'T');
-  tS+=tC.add('금 오행 (결단·절단)',ec('금')*0.7,'T');
-  tS+=tC.add('비견 (자기 기준 고수)',bi*0.3,'T');
-  fS+=fC.add('정인 (따뜻한 수용)',jIn*1.0,'F');
-  fS+=fC.add('식신 (온화한 나눔)',sik*0.5,'F');
-  fS+=fC.add('상관 (감정적 반응)',sang*0.3,'F');
-  fS+=fC.add('화 오행 (정서·따뜻함)',ec('화')*0.5,'F');
-  fS+=fC.add('수 오행 (공감·감수성)',ec('수')*0.3,'F');
-  fS+=fC.add('금 부재 (감정형 기울기)',Math.max(0,1-el('금')*0.5)*0.5,'F');
+  // E / I
+  eS += eC.add('trait: outwardExpression', traits.outwardExpression * 1.15, 'E');
+  eS += eC.add('trait: autonomy', traits.autonomy * 0.30, 'E');
+  eS += eC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 0.10, 'E');
 
-  // ═══ J/P ═══
-  const jC=makeCollector(),pC=makeCollector(); let jS=0,pS=0;
-  jS+=jC.add('정관 (규율·질서)',jGwan*1.0,'J');
-  jS+=jC.add('편관 (통제·긴장감)',pyGwan*0.4,'J');
-  jS+=jC.add('정인 (체계적 학습)',jIn*0.6,'J');
-  jS+=jC.add('토 오행 (안정·중심)',ec('토')*0.4,'J');
-  jS+=jC.add('금 오행 (구조·경계)',ec('금')*0.4,'J');
-  if(rel.hapCount>=2) jS+=jC.add('합 관계 (안정적 결합)',rel.hapCount*0.3,'J');
-  pS+=pC.add('상관 (규칙 깨기·자유)',sang*0.9,'P');
-  pS+=pC.add('편인 (비정통·변칙)',pyIn*0.5,'P');
-  pS+=pC.add('겁재 (충동·즉흥)',geob*0.6,'P');
-  pS+=pC.add('수 오행 (유동·변화)',ec('수')*0.4,'P');
-  if(rel.chongCount>=1) pS+=pC.add('충 관계 (변동)',rel.chongCount*0.5,'P');
-  if(biGyeop>=3&&(jGwan+pyGwan)<=1) pS+=pC.add('비겁 강+관성 약 (자유형)',0.5,'P');
+  iS += iC.add('trait: internalProcessing', traits.internalProcessing * 1.15, 'I');
+  iS += iC.add('trait: emotionalPressure', traits.emotionalPressure * 0.18, 'I');
+  iS += iC.add('trait: relationalEmpathy', traits.relationalEmpathy * 0.08, 'I');
 
-  // ═══ 일간 본질 ═══
-  const DM={
-    '甲':[0.5,-0.2,0,0,0.2,0,0.4,-0.2],'乙':[-0.1,0.1,0.3,-0.1,-0.3,0.5,-0.2,0.4],
-    '丙':[0.4,-0.1,0.4,-0.3,0,0,-0.1,0.3],'丁':[-0.2,0.4,0.4,-0.2,-0.3,0.5,0,0],
-    '戊':[0,0,-0.3,0.6,0,0,0.5,-0.2],'己':[0,0,-0.2,0.4,0,0.2,0.1,0],
-    '庚':[0,0,-0.2,0.3,0.5,-0.3,0.3,0],'辛':[-0.1,0.3,-0.1,0.2,0.4,-0.2,0,0],
-    '壬':[0.3,0,0.5,-0.3,0,0,-0.2,0.4],'癸':[-0.3,0.4,0.5,-0.3,-0.1,0.3,0,0],
+  // N / S
+  nS += nC.add('trait: abstractInterpretation', traits.abstractInterpretation * 1.20, 'N');
+  nS += nC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 0.12, 'N');
+  nS += nC.add('trait: internalProcessing', traits.internalProcessing * 0.08, 'N');
+
+  sS += sC.add('trait: concretePracticality', traits.concretePracticality * 1.20, 'S');
+  sS += sC.add('trait: structurePreference', traits.structurePreference * 0.10, 'S');
+  sS += sC.add('trait: outwardExpression', traits.outwardExpression * 0.05, 'S');
+
+  // T / F
+  tS += tC.add('trait: impersonalJudgment', traits.impersonalJudgment * 1.20, 'T');
+  tS += tC.add('trait: autonomy', traits.autonomy * 0.12, 'T');
+  tS += tC.add('trait: structurePreference', traits.structurePreference * 0.08, 'T');
+
+  fS += fC.add('trait: relationalEmpathy', traits.relationalEmpathy * 1.20, 'F');
+  fS += fC.add('trait: internalProcessing', traits.internalProcessing * 0.10, 'F');
+  fS += fC.add('trait: outwardExpression', traits.outwardExpression * 0.06, 'F');
+
+  // J / P
+  jS += jC.add('trait: structurePreference', traits.structurePreference * 1.20, 'J');
+  jS += jC.add('trait: concretePracticality', traits.concretePracticality * 0.10, 'J');
+  jS += jC.add('trait: stabilityLevel', traits.stabilityLevel * 0.08, 'J');
+
+  pS += pC.add('trait: adaptiveFlexibility', traits.adaptiveFlexibility * 1.20, 'P');
+  pS += pC.add('trait: outwardExpression', traits.outwardExpression * 0.08, 'P');
+  pS += pC.add('trait: conflictLevel', traits.conflictLevel * 0.06, 'P');
+
+  const scores = {
+    E: round2(eS), I: round2(iS),
+    N: round2(nS), S: round2(sS),
+    T: round2(tS), F: round2(fS),
+    J: round2(jS), P: round2(pS),
   };
-  const adj=DM[dm]||[0,0,0,0,0,0,0,0];
-  const scores8=[eS,iS,nS,sS,tS,fS,jS,pS];
-  const colls=[eC,iC,nC,sC,tC,fC,jC,pC];
-  const dirs=['E','I','N','S','T','F','J','P'];
-  adj.forEach((v,i)=>{if(v){scores8[i]+=colls[i].add('일간 '+dm+' 본질',v,dirs[i]);}});
-  [eS,iS,nS,sS,tS,fS,jS,pS]=scores8;
 
-  // ═══ 12운성 ═══
-  const se=features.stageEnergy||0;
-  if(se>0){eS+=eC.add('12운성 왕지',se*0.06,'E');sS+=sC.add('12운성 왕지',se*0.04,'S');}
-  else if(se<0){iS+=iC.add('12운성 쇠지',Math.abs(se)*0.06,'I');nS+=nC.add('12운성 쇠지',Math.abs(se)*0.04,'N');}
-
-  const s={E:round2(eS),I:round2(iS),N:round2(nS),S:round2(sS),T:round2(tS),F:round2(fS),J:round2(jS),P:round2(pS)};
-  const axes={
-    'E/I':buildAR('E/I','E','I',s.E,s.I,eC,iC),
-    'N/S':buildAR('N/S','N','S',s.N,s.S,nC,sC),
-    'T/F':buildAR('T/F','T','F',s.T,s.F,tC,fC),
-    'J/P':buildAR('J/P','J','P',s.J,s.P,jC,pC),
+  const axes = {
+    'E/I': buildAR('E/I', 'E', 'I', scores.E, scores.I, eC, iC),
+    'N/S': buildAR('N/S', 'N', 'S', scores.N, scores.S, nC, sC),
+    'T/F': buildAR('T/F', 'T', 'F', scores.T, scores.F, tC, fC),
+    'J/P': buildAR('J/P', 'J', 'P', scores.J, scores.P, jC, pC),
   };
-  const type=''+axes['E/I'].result+axes['N/S'].result+axes['T/F'].result+axes['J/P'].result;
-  const cl=Object.entries(axes).map(([k,v])=>({k,gap:Math.abs(Object.values(v.scores)[0]-Object.values(v.scores)[1])})).sort((a,b)=>a.gap-b.gap)[0];
-  const ch=type.split('');const im={'E/I':0,'N/S':1,'T/F':2,'J/P':3};
-  const [ca,cb]=cl.k.split('/');ch[im[cl.k]]=ch[im[cl.k]]===ca?cb:ca;
-  return{type,secondary:ch.join(''),scores:s,axes};
+
+  const type =
+    axes['E/I'].result +
+    axes['N/S'].result +
+    axes['T/F'].result +
+    axes['J/P'].result;
+
+  // 기존 secondary 로직 유지
+  const closest = Object.entries(axes)
+    .map(([k, v]) => {
+      const vals = Object.values(v.scores);
+      return { axis: k, gap: Math.abs(vals[0] - vals[1]) };
+    })
+    .sort((a, b) => a.gap - b.gap)[0];
+
+  const secondaryChars = type.split('');
+  const axisIndex = { 'E/I': 0, 'N/S': 1, 'T/F': 2, 'J/P': 3 };
+  const [a, b] = closest.axis.split('/');
+  const idx = axisIndex[closest.axis];
+  secondaryChars[idx] = secondaryChars[idx] === a ? b : a;
+
+  return {
+    type,
+    secondary: secondaryChars.join(''),
+    scores,
+    axes,
+    traits, // 디버깅용
+  };
 }
-
 // =====================================================================
 // analysis/interpretation.js
 // 2층(해석): 구조 기반 자연어 narrative + 관계 카드.
@@ -1294,6 +1431,7 @@ export async function onRequestPost(context) {
       five_elements: computed['오행_기본분포'],
       five_elements_status: computed['오행_분석'],
       saju_structure: features,
+      saju_traits: features.traits,
       ten_gods_summary: computed['십성_요약'],
       core_ten_gods: computed['핵심_십성'],
       stem_relations: computed['천간_관계'],
