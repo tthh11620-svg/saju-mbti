@@ -909,6 +909,26 @@ function postProcess(eightChars) {
 
 const round2 = n => Math.round(n * 100) / 100;
 
+function labelByGap(gap) {
+  if (gap < 0.25) return 'balanced';
+  if (gap < 0.70) return 'close';
+  if (gap < 1.40) return 'lean';
+  return 'clear';
+}
+
+function buildAR(axisKey, a, b, aScore, bScore, aC, bC) {
+  const winner = aScore >= bScore ? a : b;
+  const gap    = Math.abs(aScore - bScore);
+  return {
+    axis:   axisKey,
+    result: winner,
+    loser:  winner === a ? b : a,
+    label:  labelByGap(gap),
+    scores: { [a]: round2(aScore), [b]: round2(bScore) },
+    reasons: (winner === a ? aC : bC).top(3),
+  };
+}
+
 function makeCollector() {
   const items = [];
   return {
