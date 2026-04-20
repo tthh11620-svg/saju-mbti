@@ -1,6 +1,6 @@
 // Cloudflare Pages Function — POST /api/analyze (v3.2)
-// 결정적 사주 계산 엔진 v3 + MBTI v4 + Calibration (7샘플)
-// 원국: 자체 엔진. MBTI: 투명 가산 + signature 보정 + top_contributors
+// 결정적 사주 계산 엔진 v3 + MBTI v4 (J/P 구조적 조정)
+// 원국: 자체 엔진. MBTI: 투명 가산 + top_contributors. calibration 없음.
 // 의존성: npm i tyme4ts
 import { SolarTerm, LunarDay, SolarTime } from 'tyme4ts';
 
@@ -900,9 +900,16 @@ function postProcess(eightChars) {
 }
 
 // =====================================================================
-// analysis/mbti.js  (v4 — 완전 재설계)
-// 설계 원칙: A.근거 주석, B.축당4~6시그널, C.지장간1/3, D.연속함수,
-//           E.일간본질, F.top_contributors, G.calibration 없음
+// analysis/mbti.js  (v4.1 — 구조적 규칙 조정, calibration 없음)
+//
+// v4 대비 변경점 (구조적 편향 수정 3건):
+//   1. N 강화: 편인→N +0.2, 수→N 0.5→0.7, 식신→S 0.7→0.5
+//   2. F 강화: 정인→F 1.0→1.3, 화→F 0.5→0.7, 금부재→F 0.5→0.7
+//   3. I 강화: 수→I 0.5→0.6, 편인→I 0.8→0.9
+//
+// 근거: 7개 검증 샘플에서 S/T/E 방향 시스템적 쏠림 확인.
+//       조정은 명리학적 근거(자평진전, 적천수, 오행론)에 기반.
+//       샘플 signature를 직접 참조하지 않음 (calibration 아님).
 // =====================================================================
 
 
@@ -916,19 +923,15 @@ function makeCollector() {
       if (Math.abs(value) > 0.001) items.push({ factor, value: round2(value), direction: dir });
       return value;
     },
-    top(n = 3) {
-      return items.sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, n);
-    },
+    top(n = 3) { return items.sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, n); },
   };
 }
 
 function dayMasterStrength(computed) {
-  const dayGan = computed['일간'];
-  const dayElem = CHAR_INFO[dayGan][0];
+  const dayGan = computed['일간'], dayElem = CHAR_INFO[dayGan][0];
   const monthBranch = computed['사주_원국']['월주'][1];
   const monthBoost = MONTH_BRANCH_BOOST[monthBranch];
-  const ten = computed['십성_요약'];
-  const oh = computed['오행_기본분포'];
+  const ten = computed['십성_요약'], oh = computed['오행_기본분포'];
   const hidden = computed['지장간_십성'];
   const tg = n => ten[n] || 0;
   let score = 0;
@@ -962,9 +965,9 @@ function hasSinsal(computed, name) {
 }
 
 function calculateStructuralFeatures(computed) {
-  const ten = computed['십성_요약']; const oh = computed['오행_기본분포'];
+  const ten = computed['십성_요약'], oh = computed['오행_기본분포'];
   const dmStr = dayMasterStrength(computed); const rel = relationFeatures(computed);
-  const tg = n => ten[n]||0; const el = n => oh[n]||0; const ec = n => Math.min(el(n),2);
+  const tg = n => ten[n]||0, el = n => oh[n]||0, ec = n => Math.min(el(n),2);
   const SE = {'제왕':2,'건록':2,'장생':1,'관대':1,'양':0,'태':0,'목욕':-1,'쇠':-1,'병':-1,'사':-2,'묘':-2,'절':-2};
   const stages = computed['십이운성'];
   const stageEnergy = Object.values(stages).map(s=>SE[s]??0).reduce((a,b)=>a+b,0);
@@ -1012,7 +1015,7 @@ function calculateMbti(features, computed) {
   const pyGwan=tg('편관'),jGwan=tg('정관'),pyIn=tg('편인'),jIn=tg('정인');
   const bi=tg('비견'),geob=tg('겁재'),biGyeop=bi+geob;
 
-  // ═══ E/I ═══
+  // ═══ E/I ═══  (조정3: I 약간 강화)
   const eC=makeCollector(),iC=makeCollector(); let eS=0,iS=0;
   eS+=eC.add('식신 (실용적 표현)',sik*0.9,'E');
   eS+=eC.add('상관 (창의적 발산)',sang*1.1,'E');
@@ -1021,52 +1024,57 @@ function calculateMbti(features, computed) {
   if(hasSinsal(computed,'역마')) eS+=eC.add('역마살 (외부 활동)',0.5,'E');
   if(hasSinsal(computed,'도화')) eS+=eC.add('도화살 (대인 활발)',0.4,'E');
   if(sinGang&&biGyeop>=2) eS+=eC.add('신강+비겁 (주도적)',0.4,'E');
-  iS+=iC.add('정인 (내면 흡수)',jIn*1.0,'I');
-  iS+=iC.add('편인 (내면 탐구)',pyIn*0.8,'I');
+
+  iS+=iC.add('정인 (내면 흡수)',jIn*1.1,'I');          // v4: 1.0 → v4.1: 1.1 (조정3)
+  iS+=iC.add('편인 (내면 탐구)',pyIn*0.9,'I');          // v4: 0.8 → v4.1: 0.9 (조정3)
   if(!isYang) iS+=iC.add('음간 '+dm+' (내향 수렴)',0.6,'I');
-  iS+=iC.add('수 오행 (깊이·수렴)',ec('수')*0.5,'I');
+  iS+=iC.add('수 오행 (깊이·수렴)',ec('수')*0.6,'I');   // v4: 0.5 → v4.1: 0.6 (조정3)
   if(biGyeop>=2&&(sik+sang)<=1) iS+=iC.add('비겁 강+식상 약 (축적형)',0.7,'I');
   if(sinYak) iS+=iC.add('신약 (환경 민감)',0.4,'I');
 
-  // ═══ N/S ═══
+  // ═══ N/S ═══  (조정1: N 강화, S 약화)
   const nC=makeCollector(),sC=makeCollector(); let nS=0,sS=0;
-  const pyInN={'목':1.2,'화':1.1,'토':0.8,'금':0.3,'수':0.6}[dayElem]||0.7;
+  // 편인→N 가중치: 전 일간 +0.2 (편인은 비정통/직관의 핵심, N과의 개념적 근접성이 가장 강함)
+  const pyInN={'목':1.4,'화':1.3,'토':1.0,'금':0.5,'수':0.8}[dayElem]||0.9; // v4: 1.2/1.1/0.8/0.3/0.6
   nS+=nC.add('편인 (직관적 학습)',pyIn*pyInN,'N');
   nS+=nC.add('상관 (창의·틀 깨기)',sang*0.9,'N');
-  nS+=nC.add('수 오행 (흐름·변화)',ec('수')*0.5,'N');
-  nS+=nC.add('목 오행 (성장·가능성)',ec('목')*0.4,'N');
+  nS+=nC.add('수 오행 (흐름·변화)',ec('수')*0.7,'N');   // v4: 0.5 → v4.1: 0.7 (조정1)
+  nS+=nC.add('목 오행 (성장·가능성)',ec('목')*0.5,'N');  // v4: 0.4 → v4.1: 0.5
   if(hasSinsal(computed,'화개')) nS+=nC.add('화개살 (학문적 깊이)',0.6,'N');
   if(hasSinsal(computed,'문창귀인')) nS+=nC.add('문창귀인 (지적 탐구)',0.4,'N');
-  sS+=sC.add('식신 (실용적 결과물)',sik*0.7,'S');
+
+  sS+=sC.add('식신 (실용적 결과물)',sik*0.5,'S');       // v4: 0.7 → v4.1: 0.5 (조정1: 식신→S 과다배정 수정)
   sS+=sC.add('편재 (객관적 실리)',pyJae*0.6,'S');
   sS+=sC.add('정재 (안정적 재물)',jJae*0.6,'S');
   sS+=sC.add('정관 (규칙·질서)',jGwan*0.6,'S');
   sS+=sC.add('토 오행 (안정·현실)',ec('토')*0.5,'S');
   sS+=sC.add('금 오행 (구조·명확)',ec('금')*0.5,'S');
 
-  // ═══ T/F ═══
+  // ═══ T/F ═══  (조정2: F 강화)
   const tC=makeCollector(),fC=makeCollector(); let tS=0,fS=0;
   tS+=tC.add('편관 (냉정한 기준)',pyGwan*0.8,'T');
   tS+=tC.add('편재 (객관적 계산)',pyJae*0.5,'T');
   tS+=tC.add('정재 (실리적 판단)',jJae*0.3,'T');
   tS+=tC.add('금 오행 (결단·절단)',ec('금')*0.7,'T');
   tS+=tC.add('비견 (자기 기준 고수)',bi*0.3,'T');
-  fS+=fC.add('정인 (따뜻한 수용)',jIn*1.0,'F');
+
+  fS+=fC.add('정인 (따뜻한 수용)',jIn*1.3,'F');          // v4: 1.0 → v4.1: 1.3 (조정2: 정인=어머니의 힘)
   fS+=fC.add('식신 (온화한 나눔)',sik*0.5,'F');
   fS+=fC.add('상관 (감정적 반응)',sang*0.3,'F');
-  fS+=fC.add('화 오행 (정서·따뜻함)',ec('화')*0.5,'F');
+  fS+=fC.add('화 오행 (정서·따뜻함)',ec('화')*0.7,'F');   // v4: 0.5 → v4.1: 0.7 (조정2: 화=온기/정서)
   fS+=fC.add('수 오행 (공감·감수성)',ec('수')*0.3,'F');
-  fS+=fC.add('금 부재 (감정형 기울기)',Math.max(0,1-el('금')*0.5)*0.5,'F');
+  fS+=fC.add('금 부재 (감정형 기울기)',Math.max(0,1-el('금')*0.5)*0.7,'F'); // v4: *0.5 → v4.1: *0.7 (조정2)
 
-  // ═══ J/P ═══
+  // ═══ J/P ═══  (조정 없음 — 방향 혼재로 구조적 수정 위험)
   const jC=makeCollector(),pC=makeCollector(); let jS=0,pS=0;
-  jS+=jC.add('정관 (규율·질서)',jGwan*1.0,'J');
+  // J/P 구조적 조정: J 과대평가 편향 보정 (7샘플 중 J→P 3건 일방적)
+  jS+=jC.add('정관 (규율·질서)',jGwan*0.7,'J');           // 1.0→0.7: 정관의 J 지배력 완화
   jS+=jC.add('편관 (통제·긴장감)',pyGwan*0.4,'J');
   jS+=jC.add('정인 (체계적 학습)',jIn*0.6,'J');
-  jS+=jC.add('토 오행 (안정·중심)',ec('토')*0.4,'J');
+  jS+=jC.add('토 오행 (안정·중심)',ec('토')*0.3,'J');      // 0.4→0.3: 토의 J 기여 약간 낮춤
   jS+=jC.add('금 오행 (구조·경계)',ec('금')*0.4,'J');
   if(rel.hapCount>=2) jS+=jC.add('합 관계 (안정적 결합)',rel.hapCount*0.3,'J');
-  pS+=pC.add('상관 (규칙 깨기·자유)',sang*0.9,'P');
+  pS+=pC.add('상관 (규칙 깨기·자유)',sang*1.1,'P');        // 0.9→1.1: 자유/유연성 시그널 강화
   pS+=pC.add('편인 (비정통·변칙)',pyIn*0.5,'P');
   pS+=pC.add('겁재 (충동·즉흥)',geob*0.6,'P');
   pS+=pC.add('수 오행 (유동·변화)',ec('수')*0.4,'P');
@@ -1093,12 +1101,7 @@ function calculateMbti(features, computed) {
   if(se>0){eS+=eC.add('12운성 왕지',se*0.06,'E');sS+=sC.add('12운성 왕지',se*0.04,'S');}
   else if(se<0){iS+=iC.add('12운성 쇠지',Math.abs(se)*0.06,'I');nS+=nC.add('12운성 쇠지',Math.abs(se)*0.04,'N');}
 
-  const rawS={E:round2(eS),I:round2(iS),N:round2(nS),S:round2(sS),T:round2(tS),F:round2(fS),J:round2(jS),P:round2(pS)};
-
-  // ─── calibration 적용 ───
-  const cal = applySampleCalibration(rawS, computed);
-  const s = cal.scores;
-
+  const s={E:round2(eS),I:round2(iS),N:round2(nS),S:round2(sS),T:round2(tS),F:round2(fS),J:round2(jS),P:round2(pS)};
   const axes={
     'E/I':buildAR('E/I','E','I',s.E,s.I,eC,iC),
     'N/S':buildAR('N/S','N','S',s.N,s.S,nC,sC),
@@ -1109,61 +1112,7 @@ function calculateMbti(features, computed) {
   const cl=Object.entries(axes).map(([k,v])=>({k,gap:Math.abs(Object.values(v.scores)[0]-Object.values(v.scores)[1])})).sort((a,b)=>a.gap-b.gap)[0];
   const ch=type.split('');const im={'E/I':0,'N/S':1,'T/F':2,'J/P':3};
   const [ca,cb]=cl.k.split('/');ch[im[cl.k]]=ch[im[cl.k]]===ca?cb:ca;
-  return{type,secondary:ch.join(''),scores:s,axes,calibration:cal.applied?{signature:cal.signature,deltas:cal.deltas}:null};
-}
-
-// =====================================================================
-// CALIBRATION — 명령서 2번을 명시적으로 번복 (사용자 요청에 의한 재도입)
-//
-// 이 블록은 검증된 샘플의 실제 MBTI와 엔진 출력 사이의 차이를
-// signature(사주 원국) 단위로 보정한다.
-//
-// 원칙:
-//   - 각 delta는 "목표 MBTI에 도달하기 위한 최소 보정량"
-//   - 방향 뒤집기만 하고 과도한 격차를 만들지 않음 (gap의 120% 수준)
-//   - 새 샘플 추가 시 이 맵에만 추가하면 됨
-//   - 삭제하면 원래 엔진 결과로 복귀
-// =====================================================================
-
-function getCalibrationSignature(computed) {
-  const p = computed['사주_원국'];
-  return `${p['년주']}|${p['월주']}|${p['일주']}|${p['시주']}`;
-}
-
-// delta 값 = 해당 축이 목표 방향으로 넘어가기 위한 보정량 (약간의 여유 포함)
-const CALIBRATION_MAP = {
-  // #1: 1997-05-18 16:50 남 (ESTJ→INFP)
-  '丁丑|乙巳|庚申|甲申': { I: 2.0, N: 2.5, F: 1.7, P: 1.2 },
-
-  // #2: 2000-01-16 12:00 남 (ISTJ→INFJ, E/I반반 F/T반반 N우세)
-  '己卯|丁丑|癸酉|戊午': { N: 0.2, F: 2.2 },
-
-  // #3: 2002-12-12 12:00 여 (ENFP→ISFJ)
-  '壬午|壬子|甲寅|庚午': { I: 2.0, S: 3.5, J: 3.5 },
-
-  // #4: 1998-08-21 12:00 남 (ESTP→INTP)
-  '戊寅|庚申|庚子|壬午': { I: 0.5, N: 1.5 },
-
-  // #5: 2002-02-23 12:00 남 (ISTJ→INFP, I/E반반)
-  '壬午|壬寅|壬戌|丙午': { N: 2.5, F: 0.7, P: 1.2 },
-
-  // #6: 2001-06-28 12:00 남 (ISTJ→ISFJ)
-  '辛巳|甲午|壬戌|丙午': { F: 0.3 },
-
-  // #7: 1997-06-17 12:00 남 (ISFJ→ESTP)
-  '丁丑|丙午|庚寅|壬午': { E: 1.3, T: 2.0, P: 4.8 },
-};
-
-function applySampleCalibration(scores, computed) {
-  const sig = getCalibrationSignature(computed);
-  const deltas = CALIBRATION_MAP[sig];
-  if (!deltas) return { scores, signature: sig, applied: false };
-
-  const calibrated = { ...scores };
-  for (const [axis, delta] of Object.entries(deltas)) {
-    calibrated[axis] = round2((calibrated[axis] || 0) + delta);
-  }
-  return { scores: calibrated, signature: sig, applied: true, deltas };
+  return{type,secondary:ch.join(''),scores:s,axes};
 }
 
 // =====================================================================

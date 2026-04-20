@@ -18,6 +18,20 @@ const DAY_MASTER_INFO = {
 };
 
 const ELEM_NAME = { '목': '木 목', '화': '火 화', '토': '土 토', '금': '金 금', '수': '水 수' };
+
+const STRUCTURE_LABEL_MAP = {
+  '관성 강세형': { label: '기준 중심형', desc: '규칙·책임·외부 기준을 강하게 받아들이는 구조', mbti: 'T + J 방향 강세' },
+  '식상 약세형': { label: '표현 내향형', desc: '생각·감정을 안에서 정리하고 천천히 꺼내는 구조', mbti: '즉흥 표현보다 내면 처리가 먼저' },
+  '식상 발산형': { label: '표현 발산형', desc: '생각과 감정을 즉각 밖으로 꺼내는 구조', mbti: 'E + P 방향 강세' },
+  '충돌 내면형': { label: '내면 긴장형', desc: '겉은 조용해도 내부에서 생각·감정이 자주 부딪히는 구조', mbti: '내면 갈등이 많은 NF·NT 패턴' },
+  '해석 중심형': { label: '의미 탐색형', desc: '이면의 뜻·심리·패턴을 먼저 읽으려는 구조', mbti: 'N 우세 — 정보를 안에서 오래 굴리는 타입' },
+  '환경 민감형': { label: '주변 흡수형', desc: '주변 분위기·사람 영향을 쉽게 받는 구조', mbti: 'F + 외부 자극 민감 — 공감 폭이 넓은 편' },
+  '인성 강세형': { label: '수용 분석형', desc: '정보를 깊이 받아들이고 내면에서 오래 정리하는 구조', mbti: 'N + I 방향 강세' },
+  '비견 강세형': { label: '자기주도형', desc: '독립성과 자기 기준이 강한 구조', mbti: 'E + T 방향 강세' },
+  '책임 구조형': { label: '책임 우선형', desc: '신뢰와 책임감을 관계의 핵심으로 두는 구조', mbti: 'J + T 방향 강세' },
+  '관계 민감형': { label: '관계 감지형', desc: '사람과 상황의 감정 흐름을 빠르게 읽는 구조', mbti: 'F + N 방향 강세' },
+  '내면 축적형': { label: '내면 축적형', desc: '표현보다 안에서 쌓고 정리하는 구조', mbti: 'I + J 방향 강세' },
+};
 const PILLAR_ELEM = {
   '甲':'목','乙':'목','丙':'화','丁':'화','戊':'토','己':'토','庚':'금','辛':'금','壬':'수','癸':'수',
   '子':'수','丑':'토','寅':'목','卯':'목','辰':'토','巳':'화','午':'화','未':'토','申':'금','酉':'금','戌':'토','亥':'수',
@@ -32,14 +46,54 @@ const AXIS_LABEL_TEXT = {
 
 // 축별 행동 묘사형 힌트 (정의형 금지, 관찰형으로)
 const AXIS_HINTS = {
-  E: "사람들과 함께할 때 에너지가 올라오는 편. 말하면서 정리하는 타입",
-  I: "속으로 정리한 뒤 말이 나오는 편. 혼자 있어야 충전됨",
-  N: "현실보다 패턴과 가능성을 먼저 읽는 편. 디테일보다 맥락이 먼저",
-  S: "가능성보다 지금 조건을 먼저 체크하는 편. 현실 감각이 판단 기준",
-  T: "공감도 하지만 결국 기준과 논리가 판단의 중심에 있는 타입",
-  F: "사람 사이 온도와 맥락을 실제 판단 기준에 넣는 편",
-  J: "겉으론 유연해 보여도 속은 이미 정리 끝난 경우가 많음",
-  P: "결정보다 가능성을 열어두고 흐름에 맞게 조율하는 편",
+  E: {
+    summary: "에너지가 외부 활동과 표현 쪽으로 흐르는 구조",
+    desc: "말하고 행동하면서 정리되는 편. 자극이 있을 때 에너지가 살아남",
+    bullets: ["생각보다 말이 먼저 나오는 편", "사람이 많은 공간에서 오히려 활력이 생김"],
+    saju: "비겁·식상·화(火) 기운이 바깥으로 향하는 구조에서 읽힘",
+  },
+  I: {
+    summary: "표현보다 내부 정리가 먼저 작동하는 구조",
+    desc: "말하기 전에 안에서 먼저 정리하는 패턴. 혼자 있는 시간이 충전에 가까움",
+    bullets: ["속으로 다 정리한 뒤 말이 나오는 편", "긴 자극 후엔 혼자만의 시간이 필요"],
+    saju: "비겁 에너지가 안으로 수렴하거나 식상이 약한 구조에서 자주 나타남",
+  },
+  N: {
+    summary: "현실 디테일보다 의미·흐름·가능성을 먼저 묶는 구조",
+    desc: "눈앞 사실보다 이면의 패턴과 연결을 먼저 읽으려 함. '왜?'가 먼저 켜지는 타입",
+    bullets: ["구체적인 것보다 맥락과 흐름이 먼저 눈에 들어옴", "새로운 가능성과 의미 연결을 즐기는 편"],
+    saju: "수(水)·목(木)·식상 기운과 해석 중심 구조에서 읽힘",
+  },
+  S: {
+    summary: "가능성보다 지금 현실과 조건을 먼저 확인하는 구조",
+    desc: "패턴보다 실제 경험과 구체적 사실이 판단의 기준. 현실 감각이 발달해 있음",
+    bullets: ["추상보다 구체적 방법과 현실이 먼저", "검증된 방식을 신뢰하는 편"],
+    saju: "토(土)·금(金)·관성 기운이 강해 현실 기반 판단 구조가 만들어짐",
+  },
+  T: {
+    summary: "감정보다 기준·논리·일관성이 판단의 중심인 구조",
+    desc: "공감은 하지만 결국 판단은 기준과 일관성 쪽에서 이뤄짐. 원칙이 감정보다 먼저 정렬되는 편",
+    bullets: ["앞뒤가 맞는지를 먼저 체크하는 편", "감정적 호소보다 근거 있는 설명이 더 설득력 있게 들림"],
+    saju: "금(金)·관성·토(土) 기운이 객관적 분석과 기준 설정 쪽으로 작동하는 구조",
+  },
+  F: {
+    summary: "감정선과 관계 맥락을 실제 판단 기준에 넣는 구조",
+    desc: "논리만으로 결론 내리기 전에 상황 속 사람과 온도를 함께 고려하는 편",
+    bullets: ["맞는 말이어도 전달 방식이 중요하게 느껴짐", "관계의 분위기와 감정 흐름을 자연스럽게 읽는 편"],
+    saju: "수(水)·식상·목(木) 기운이 감정 감지와 관계 중심 판단으로 이어지는 구조",
+  },
+  J: {
+    summary: "내부 기준과 정리 욕구가 비교적 강한 구조",
+    desc: "결정을 미루는 것보다 정리된 상태를 선호. 계획이나 틀이 있을 때 더 잘 움직이는 편",
+    bullets: ["마무리 안 된 상황이 오래 남아 있으면 신경 쓰이는 편", "즉흥보다 미리 준비하는 쪽이 편함"],
+    saju: "토(土)·금(金)·관성·인성 기운이 체계와 기준 유지로 연결되는 구조",
+  },
+  P: {
+    summary: "결정보다 가능성을 열어두고 흐름에 맞게 조율하는 구조",
+    desc: "하나로 결론 내리기보다 다양한 방향을 탐색하며 움직이는 편. 유연성이 강점",
+    bullets: ["정해진 계획보다 상황에 맞게 조절하는 방식이 편함", "마감 직전에 오히려 집중력이 올라오기도 함"],
+    saju: "수(水)·비겁·식상·충(沖) 기운이 즉흥성과 유동적 구조를 만들어냄",
+  },
 };
 
 const form          = document.getElementById("saju-form");
@@ -155,12 +209,11 @@ function renderResult(data) {
   resultSection.style.display = "block";
   resultSection.scrollIntoView({ behavior: "smooth" });
 
-  renderQuickSummary(data);
   renderShareCard(data);
   renderMbtiResult(data);
   renderPersonalityCards(data);
   renderInterpretationBlocks(data);
-  renderPostCTA(data.mbti?.type || "");
+  renderPostCTA(data);
   renderSajuDetails(data);
 }
 
@@ -173,8 +226,17 @@ function renderShareCard(data) {
 
   document.getElementById("share-type").textContent = mbti;
 
+  // 어떤 축에서 인접한지 표시
+  const axisDiff = (() => {
+    if (!mbti || mbti.length !== 4 || !secondary || secondary.length !== 4) return "";
+    const axisLabels = ["E/I","N/S","T/F","J/P"];
+    for (let i = 0; i < 4; i++) {
+      if (mbti[i] !== secondary[i]) return axisLabels[i];
+    }
+    return "";
+  })();
   document.getElementById("share-secondary").innerHTML = secondary
-    ? `인접 유형 <strong>${escapeHtml(secondary)}</strong>`
+    ? `경계 유형 <strong>${escapeHtml(secondary)}</strong>${axisDiff ? `<br><span style="font-size:9px;opacity:.7">${axisDiff} 근소차</span>` : ""}`
     : "";
 
   document.getElementById("share-summary").textContent = summary;
@@ -201,9 +263,9 @@ function renderShareCard(data) {
   const eiResult = confidence['E/I']?.result;
   const promptEl = document.getElementById("share-prompt");
   if (promptEl) {
-    if (eiResult === 'I') promptEl.textContent = '나는 E처럼 사는 I였다 — 친구도 확인해봐 👇';
-    else if (eiResult === 'E') promptEl.textContent = '나는 I처럼 사는 E였다 — 친구도 확인해봐 👇';
-    else promptEl.textContent = '겉보기 MBTI랑 태생 MBTI 차이 공유하기 👀';
+    if (eiResult === 'I') promptEl.textContent = '설문은 E인데 사주 구조는 I — 친구도 읽어봐 👇';
+    else if (eiResult === 'E') promptEl.textContent = '설문은 I인데 사주 구조는 E — 친구도 읽어봐 👇';
+    else promptEl.textContent = '설문 MBTI랑 사주 구조가 다르게 읽힐 수 있어요 👀';
   }
 
   // 이미지 저장
@@ -232,7 +294,7 @@ function renderShareCard(data) {
 
   // 공유
   document.getElementById("share-result-btn").onclick = () => {
-    const text = `사주로 본 내 타고난 MBTI는 ${mbti}${secondary ? ` (인접: ${secondary})` : ""}! 나도 해봐 👇`;
+    const text = `내 사주 구조를 MBTI로 번역하면 ${mbti}${secondary ? ` (경계: ${secondary})` : ""}래. 너도 해봐 👇`;
     if (navigator.share) {
       navigator.share({ title: `사주 MBTI: ${mbti}`, text, url: location.href }).catch(() => {});
     } else {
@@ -334,19 +396,37 @@ function renderMbtiResult(data) {
         </div>
 
         <div class="axis-display">${escapeHtml(info.display || `${info.result} 우세`)}</div>
-        ${AXIS_HINTS[info.result] ? `<div class="axis-hint">${AXIS_HINTS[info.result]}</div>` : ''}
+        ${(() => {
+          const h = AXIS_HINTS[info.result];
+          if (!h) return '';
+          return `
+            <div class="axis-hint">${escapeHtml(h.summary)}</div>
+            <div class="axis-hint axis-hint--desc">${escapeHtml(h.desc)}</div>
+          `;
+        })()}
 
         <div class="axis-strength-bar">
           <div class="axis-strength-bar__fill" style="width:${fillWidth}%"></div>
         </div>
 
-        ${
-          reasons.length
+        ${(() => {
+          const h = AXIS_HINTS[info.result];
+          const staticBullets = h?.bullets || [];
+          const apiBullets = reasons;
+          const bullets = apiBullets.length ? apiBullets : staticBullets;
+          return bullets.length
             ? `<ul class="axis-reasons">
-                ${reasons.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
+                ${bullets.map(r => `<li>${escapeHtml(r)}</li>`).join("")}
               </ul>`
-            : ""
-        }
+            : '';
+        })()}
+
+        ${(() => {
+          const h = AXIS_HINTS[info.result];
+          return h?.saju
+            ? `<div class="axis-saju-note">🔮 ${escapeHtml(h.saju)}</div>`
+            : '';
+        })()}
       </div>
     `;
 
@@ -376,38 +456,60 @@ function renderInterpretationBlocks(data) {
   const blocks = data.interpretation_blocks || {};
   const structureLabels = blocks.structure_labels || [];
 
+  // 구조 배지 렌더
+  const structureBadges = structureLabels.length
+    ? `<div class="struct-badge-row">
+        ${structureLabels.map(raw => {
+          const t = STRUCTURE_LABEL_MAP[raw];
+          return t
+            ? `<span class="struct-badge" title="${escapeHtml(t.desc)} · ${escapeHtml(t.mbti)}">
+                 <span class="struct-badge__main">${escapeHtml(t.label)}</span>
+                 <span class="struct-badge__sub">${escapeHtml(raw)}</span>
+               </span>`
+            : `<span class="struct-badge"><span class="struct-badge__main">${escapeHtml(raw)}</span></span>`;
+        }).join("")}
+      </div>`
+    : '';
+
+  // reason_summary 번역 병기
+  const reasonHtml = (blocks.reason_summary || '').split('/').map(seg => {
+    const s = seg.trim();
+    const t = STRUCTURE_LABEL_MAP[s];
+    return t
+      ? `<span class="reason-term">${escapeHtml(t.label)}<span class="reason-term__orig">(${escapeHtml(s)})</span></span>`
+      : escapeHtml(s);
+  }).join(' / ');
+
   box.innerHTML = `
+    <!-- ① 사주 구조 — 왜 이 유형인지 먼저 -->
+    <div class="result-block result-block--saju-first">
+      <div class="result-block__label">🔮 사주 구조로 보면</div>
+      <div class="result-block__content result-block__content--small">${reasonHtml}</div>
+      ${structureBadges}
+    </div>
+
+    <!-- ② 한 줄 요약 -->
     <div class="result-block">
       <div class="result-block__label">💡 한 줄로 정리하면</div>
       <div class="result-block__content" style="font-size:var(--text-base);font-weight:600;line-height:1.7;">${escapeHtml(blocks.summary || '')}</div>
     </div>
 
+    <!-- ③ 이런 사람이에요 -->
     <div class="result-block">
       <div class="result-block__label">🌟 이런 사람이에요</div>
       ${renderSentenceLines(blocks.personality || '')}
-      ${structureLabels.length ? `
-        <div style="margin-top:var(--s4);display:flex;flex-wrap:wrap;gap:8px;">
-          ${structureLabels.map(label => `
-            <span style="display:inline-block;background:var(--surface-3);color:var(--text-primary);border-radius:999px;padding:5px 14px;font-size:0.8125rem;font-weight:800;">
-              ${escapeHtml(label)}
-            </span>
-          `).join("")}
-        </div>` : ''}
     </div>
 
-    <div class="result-block">
-      <div class="result-block__label">💬 연애·관계에선 이래요</div>
-      ${renderSentenceLines(blocks.relationship || '')}
-    </div>
-
+    <!-- ④ 조심할 부분 -->
     <div class="result-block">
       <div class="result-block__label">⚠️ 이건 조심하면 좋아요</div>
       ${renderSentenceLines(blocks.caution || '')}
     </div>
 
+    <!-- ⑤ 연애·관계 -->
     <div class="result-block result-block--bordered">
-      <div class="result-block__label">🔍 사주 구조로 보면</div>
-      <div class="result-block__content result-block__content--small">${escapeHtml(blocks.reason_summary || '')}</div>
+      <div class="result-block__label">💬 연애·관계에선 이래요</div>
+      ${renderSentenceLines(blocks.relationship || '')}
     </div>
   `;
 }
@@ -421,25 +523,25 @@ function renderPersonalityCards(data) {
 
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">💝 관계 패턴 — 알아두면 편해요</div>
+      <div class="section-eyebrow">🔗 가까워질수록 드러나는 이 사람의 구조</div>
 
       <div style="display:grid;grid-template-columns:1fr;gap:20px;">
 
-        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">💕 연애할 때</div>
+        <div class="rel-card">
+          <div class="rel-card__title">연애에서 드러나는 사주 패턴</div>
           ${renderSentenceLines(relation.love || '')}
         </div>
 
-        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🤝 가까워지면</div>
+        <div class="rel-card">
+          <div class="rel-card__title">가까워질수록 나오는 본래 구조</div>
           ${renderSentenceLines(relation.relationship || '')}
         </div>
 
-        <div style="border:1px solid var(--border);border-radius:16px;padding:20px;background:var(--surface-2);box-shadow:var(--shadow-sm);">
-          <div style="font-size:1.125rem;font-weight:800;color:var(--text-primary);margin-bottom:14px;">🔮 나한테 맞는 사람</div>
-          <div style="margin-bottom:14px;">
-            <span style="display:inline-block;background:var(--primary);color:#fff;border-radius:999px;padding:6px 16px;font-family:var(--font-display);font-weight:900;font-size:1rem;letter-spacing:2px;">${escapeHtml(compat)}</span>
-            <span style="display:inline-block;margin-left:8px;font-size:var(--text-xs);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">보완 궁합</span>
+        <div class="rel-card rel-card--compat">
+          <div class="rel-card__title">이 구조가 편안함을 느끼기 쉬운 관계 타입</div>
+          <div class="rel-card__compat-row">
+            <span class="rel-card__compat-badge">${escapeHtml(compat)}</span>
+            <span class="rel-card__compat-note">사주 구조 기반 참고 — 절대적 궁합이 아니에요</span>
           </div>
           ${renderSentenceLines(relation.compat_desc || '')}
         </div>
@@ -449,42 +551,73 @@ function renderPersonalityCards(data) {
   `;
 }
 
-function renderPostCTA(_mbti) {
+function renderPostCTA(data) {
   const section = document.getElementById("post-cta-section");
   if (!section) return;
 
+  const confidence = data.mbti?.confidence || {};
+  const labels = data.interpretation_blocks?.structure_labels || [];
+  const has = l => labels.includes(l);
+
+  const eiResult  = confidence['E/I']?.result  || '';
+  const eiLabel   = confidence['E/I']?.label   || '';
+  const jpResult  = confidence['J/P']?.result  || '';
+  const jpLabel   = confidence['J/P']?.label   || '';
+  const tfLabel   = confidence['T/F']?.label   || '';
+
+  // 카드 1: 호감 표현 — I + 식상 약세형
+  const card1Tag  = eiResult === 'I'
+    ? `${eiLabel === 'clear' ? 'I 뚜렷' : 'I 우세'}${has('식상 약세형') ? ' + 표현 내향형' : ''}`
+    : `E/I 경계`;
+  const card1Desc = eiResult === 'I'
+    ? `[${card1Tag}] 구조라서 — 이 결과에 이유가 있어요`
+    : `[${card1Tag}] 구조에서 표현 타이밍이 엇나가는 패턴이 나와요`;
+
+  // 카드 2: 가까워진 뒤 선 긋기 — J + 관성/충돌
+  const card2Struct = has('관성 강세형') ? '기준 중심형' : has('충돌 내면형') ? '내면 긴장형' : '';
+  const card2Tag  = jpResult === 'J'
+    ? `${jpLabel === 'clear' ? 'J 뚜렷' : 'J 우세'}${card2Struct ? ` + ${card2Struct}` : ''}`
+    : card2Struct || 'J/P 경계';
+  const card2Desc = `[${card2Tag}] 구조가 만드는 관계 패턴 — 위에 있어요`;
+
+  // 카드 4 (준비 중): T/F 경계 + 관성/식상 약세
+  const card4Struct = has('관성 강세형') ? '기준 중심형' : has('식상 약세형') ? '표현 내향형' : '';
+  const card4Desc = (tfLabel === 'balanced' || tfLabel === 'close') && card4Struct
+    ? `[T/F 경계 + ${card4Struct}] 구조에서 자주 나오는 패턴이에요 — 곧 풀어드릴게요`
+    : `의도와 다르게 읽히는 이유를 사주로 — 곧 열려요`;
+
   section.innerHTML = `
     <div class="card">
-      <div class="section-eyebrow">👀 더 찌르는 질문들</div>
+      <div class="section-eyebrow">🔍 이 결과에서 파생된 질문들</div>
 
       <div class="next-grid">
 
         <div class="next-card next-card--open" id="next-love">
           <span class="next-badge next-badge--included">결과에 있음 ↑</span>
           <span class="next-card__icon">💘</span>
-          <div class="next-card__title">왜 호감 있어도 티가 이상하게 날까?</div>
-          <div class="next-card__desc">연애 패턴이 위 결과에 담겨 있어요. 바로 올려볼게요.</div>
+          <div class="next-card__title">호감인데 왜 표현이 이상하게 나올까</div>
+          <div class="next-card__desc">${escapeHtml(card1Desc)}</div>
         </div>
 
         <div class="next-card next-card--open" id="next-relation">
           <span class="next-badge next-badge--included">결과에 있음 ↑</span>
           <span class="next-card__icon">🥶</span>
-          <div class="next-card__title">친해지면 갑자기 차가워 보이는 이유</div>
-          <div class="next-card__desc">관계 패턴 해석이 위에 있어요. 바로 올려볼게요.</div>
+          <div class="next-card__title">가까워진 뒤 왜 더 선 긋는 사람처럼 보일까</div>
+          <div class="next-card__desc">${escapeHtml(card2Desc)}</div>
         </div>
 
         <div class="next-card next-card--soon">
           <span class="next-badge next-badge--soon">준비 중</span>
           <span class="next-card__icon">🔮</span>
-          <div class="next-card__title">나한테 끌리는 사람 vs 오래 가는 사람</div>
-          <div class="next-card__desc">사주 구조로 보는 케미 분석, 곧 열려요.</div>
+          <div class="next-card__title">이 구조가 끌리는 타입 vs 오래 가는 타입</div>
+          <div class="next-card__desc">보완 궁합과 케미 분석을 사주 구조로 — 곧 열려요</div>
         </div>
 
         <div class="next-card next-card--soon">
           <span class="next-badge next-badge--soon">준비 중</span>
           <span class="next-card__icon">🤔</span>
-          <div class="next-card__title">배려했는데 왜 상대는 차갑다고 느낄까?</div>
-          <div class="next-card__desc">의도랑 다르게 읽히는 이유, 사주로 풀어드릴게요.</div>
+          <div class="next-card__title">배려했는데 왜 차갑게 읽히는 걸까</div>
+          <div class="next-card__desc">${escapeHtml(card4Desc)}</div>
         </div>
 
       </div>
